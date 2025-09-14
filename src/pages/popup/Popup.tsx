@@ -50,6 +50,7 @@ export default function Popup() {
     maxPrice: 300,
     sortMethod: 'Popularne',
     itemsToAdd: 5,
+    executionTime: '',
     gender: '',
     clothingCategory: '',
     shoesCategory: '',
@@ -108,6 +109,7 @@ export default function Popup() {
         setMaxPrice(formData.maxPrice || 300)
         setSortMethod(formData.sortMethod || 'Popularne')
         setItemsToAdd(formData.itemsToAdd || 5)
+        setExecutionTime(formData.executionTime || '')
         setGender(formData.gender || '')
         setClothingCategory(formData.clothingCategory || '')
         setShoesCategory(formData.shoesCategory || '')
@@ -131,13 +133,14 @@ export default function Popup() {
       maxPrice,
       sortMethod,
       itemsToAdd,
+      executionTime,
       gender,
       clothingCategory,
       shoesCategory,
       accessoriesCategory,
       equipmentCategory
     }
-  }, [campaignId, brand, size, color, maxPrice, sortMethod, itemsToAdd, gender, clothingCategory, shoesCategory, accessoriesCategory, equipmentCategory])
+  }, [campaignId, brand, size, color, maxPrice, sortMethod, itemsToAdd, executionTime, gender, clothingCategory, shoesCategory, accessoriesCategory, equipmentCategory])
 
   const saveMainFormData = useCallback(() => {
     // Clear existing timer
@@ -264,6 +267,25 @@ export default function Popup() {
     saveTestZoneData([], showTestZone)
   }
 
+  const waitForPageLoad = async (tabId: number): Promise<void> => {
+    return new Promise((resolve) => {
+      const checkTabStatus = async () => {
+        try {
+          const tab = await chrome.tabs.get(tabId)
+          if (tab.status === 'complete') {
+            // Reduced wait time - content script will handle DOM readiness
+            setTimeout(resolve, 300)
+          } else {
+            setTimeout(checkTabStatus, 100) // Faster polling
+          }
+        } catch (error) {
+          resolve()
+        }
+      }
+      checkTabStatus()
+    })
+  }
+
   const handleTestButtonClick = async () => {
     if (!campaignId) {
       alert('Proszę wpisać ID kampanii do testowania')
@@ -279,13 +301,15 @@ export default function Popup() {
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
       if (activeTab?.id) {
+        addTestLog(`🔄 Nawigacja do: ${campaignUrl}`)
         await chrome.tabs.update(activeTab.id, { url: campaignUrl })
-        addTestLog(`✅ Przekierowano na: ${campaignUrl}`)
 
-        // Apply filters after page loads
-        setTimeout(async () => {
-          await applyFiltersToCurrentTab(activeTab.id!)
-        }, 5000)
+        // Wait for page to load using tab update listener instead of fixed timeout
+        await waitForPageLoad(activeTab.id)
+        addTestLog(`✅ Strona załadowana`)
+
+        // Apply filters immediately after page loads
+        await applyFiltersToCurrentTab(activeTab.id!)
       }
     } catch (error) {
       console.error('Failed to navigate to campaign:', error)
@@ -295,32 +319,34 @@ export default function Popup() {
 
   const applyFiltersToCurrentTab = async (tabId: number) => {
     try {
-      addTestLog('🔄 Aplikuję filtry...')
+      addTestLog('🔄 Sprawdzam gotowość content script...')
 
-      // Check if content script is ready
+      // Aggressive content script readiness check
       let contentScriptReady = false
-      const maxAttempts = 10
+      const maxAttempts = 20 // More attempts with ultra-fast intervals
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' })
           if (response?.pong) {
+            addTestLog(`✅ Content script gotowy po ${attempt} próbach`)
             contentScriptReady = true
             break
           }
         } catch (error) {
-          addTestLog(`⚠️ Próba ${attempt}: Content script nie gotowy`)
           if (attempt < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            // Ultra-fast polling - 150ms intervals
+            await new Promise(resolve => setTimeout(resolve, 150))
           }
         }
       }
 
       if (!contentScriptReady) {
-        addTestLog('❌ Content script nie odpowiada')
+        addTestLog('❌ Content script nie odpowiada po 15 próbach')
         return
       }
 
+      addTestLog('🔧 Przygotowuję konfigurację filtrów...')
       // Prepare filter config
       const filterConfig = {
         brand: brand ? brand.split(',').map(b => b.trim()).filter(b => b.length > 0) : [],
@@ -559,7 +585,7 @@ export default function Popup() {
                         setAccessoriesCategory('')
                         setEquipmentCategory('')
                       }
-                      // Save will be triggered by the useEffect
+                      saveMainFormData()
                     }}
                     disabled={!gender || shoesCategory || accessoriesCategory || equipmentCategory}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || shoesCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
@@ -595,7 +621,7 @@ export default function Popup() {
                         setAccessoriesCategory('')
                         setEquipmentCategory('')
                       }
-                      // Save will be triggered by the useEffect
+                      saveMainFormData()
                     }}
                     disabled={!gender || clothingCategory || accessoriesCategory || equipmentCategory}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
@@ -627,7 +653,7 @@ export default function Popup() {
                         setShoesCategory('')
                         setEquipmentCategory('')
                       }
-                      // Save will be triggered by the useEffect
+                      saveMainFormData()
                     }}
                     disabled={!gender || clothingCategory || shoesCategory || equipmentCategory}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
@@ -658,7 +684,7 @@ export default function Popup() {
                         setShoesCategory('')
                         setAccessoriesCategory('')
                       }
-                      // Save will be triggered by the useEffect
+                      saveMainFormData()
                     }}
                     disabled={!gender || clothingCategory || shoesCategory || accessoriesCategory}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || accessoriesCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
@@ -756,7 +782,10 @@ export default function Popup() {
               <input
                 type="datetime-local"
                 value={executionTime}
-                onChange={(e) => setExecutionTime(e.target.value)}
+                onChange={(e) => {
+                  setExecutionTime(e.target.value)
+                  saveMainFormData()
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>

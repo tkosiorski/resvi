@@ -44,11 +44,12 @@ interface FilterConfig {
 class ZalandoFilter {
   private config: FilterConfig = {}
   private retryCount = 0
-  private maxRetries = 10
-  private retryDelay = 500
+  private maxRetries = 15 // More attempts for reliability
+  private retryDelay = 50 // Ultra-fast retries
 
   constructor() {
     this.init()
+    this.checkForAutoReservation()
   }
 
   private async init() {
@@ -68,6 +69,23 @@ class ZalandoFilter {
           .then(() => {
             console.log('✅ Filter application completed successfully')
             sendResponse({ success: true })
+
+            // Start product reservations AFTER successful filtering
+            if (message.config.itemsToAdd && message.config.itemsToAdd > 0) {
+              console.log(`🛒 Starting product reservations for ${message.config.itemsToAdd} items`)
+              setTimeout(() => {
+                // Parse sizes if needed (config.size is already string[] from popup)
+                const sizeFilters = Array.isArray(message.config.size) ? message.config.size :
+                  (message.config.size ? [message.config.size] : [])
+
+                console.log(`📏 Using size filters for reservation:`, sizeFilters)
+
+                this.startProductReservationsWithWait(message.config.itemsToAdd, sizeFilters)
+                  .catch(error => {
+                    console.error('❌ Product reservation failed:', error)
+                  })
+              }, 1000) // Start reservations 1 second after successful filtering
+            }
           })
           .catch((error) => {
             console.error('❌ Filter application failed:', error)
@@ -75,9 +93,47 @@ class ZalandoFilter {
           })
         return true // Keep message channel open for async response
       }
+
     })
 
     console.log('🟢 Zalando Filter content script loaded on:', window.location.href)
+  }
+
+  private async checkForAutoReservation(): Promise<void> {
+    try {
+      // Check if this page was opened for automatic reservation
+      const urlParams = new URLSearchParams(window.location.search)
+      const autoReserveId = urlParams.get('autoReserve')
+
+      if (autoReserveId) {
+        console.log(`🔄 Auto-reservation triggered for: ${autoReserveId}`)
+        logToStorage('LOG', `🔄 Auto-reservation triggered for: ${autoReserveId}`)
+
+        // Get reservation data from localStorage
+        const reservationDataStr = localStorage.getItem(autoReserveId)
+        if (reservationDataStr) {
+          const reservationData = JSON.parse(reservationDataStr)
+
+          console.log(`🛒 Starting auto-reservation with data:`, reservationData)
+
+          // Wait a moment for page to start loading
+          setTimeout(async () => {
+            try {
+              await this.reserveCurrentProduct(reservationData.sizeFilters, reservationData.itemNumber)
+            } catch (error) {
+              console.error('Auto-reservation failed:', error)
+            }
+          }, 1000)
+
+          // Clean up
+          localStorage.removeItem(autoReserveId)
+        } else {
+          console.error('Auto-reservation data not found in localStorage')
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for auto-reservation:', error)
+    }
   }
 
   private async applyFilters(config: FilterConfig) {
@@ -88,6 +144,18 @@ class ZalandoFilter {
     console.log('⏳ Waiting for page to load...')
     await this.waitForPageLoad()
     console.log('✅ Page loaded, proceeding with filters')
+
+    // Pre-check critical elements for instant failure detection
+    const criticalElements = [
+      '[data-testid="filter-tabs-container-with-header"]',
+      '[data-testid="sort-filter"]'
+    ]
+
+    for (const selector of criticalElements) {
+      if (!document.querySelector(selector)) {
+        console.log(`⚡ Pre-warming: ${selector}...`)
+      }
+    }
 
     // Log current page structure
     this.logPageStructure()
@@ -161,10 +229,12 @@ class ZalandoFilter {
 
   private async waitForPageLoad(): Promise<void> {
     return new Promise((resolve) => {
-      if (document.readyState === 'complete') {
+      // Check if DOM is already interactive or complete
+      if (document.readyState === 'interactive' || document.readyState === 'complete') {
         resolve()
       } else {
-        window.addEventListener('load', () => resolve())
+        // Wait for DOM to be interactive (faster than waiting for full load)
+        document.addEventListener('DOMContentLoaded', () => resolve())
       }
     })
   }
@@ -174,7 +244,7 @@ class ZalandoFilter {
 
     // Wait for filter tabs to be available
     console.log('⏳ Waiting for filter tabs container...')
-    const filterTabsContainer = await this.waitForElement('[data-testid="filter-tabs-container-with-header"]', 5000)
+    const filterTabsContainer = await this.waitForElement('[data-testid="filter-tabs-container-with-header"]', 3000) // Reduced timeout for faster failure detection
     if (!filterTabsContainer) {
       console.error('❌ Filter tabs container not found after timeout')
       return
@@ -194,7 +264,7 @@ class ZalandoFilter {
 
     // Wait for brand list to appear
     console.log('⏳ Waiting for brand list to appear...')
-    const subFilterWrapper = await this.waitForElement('[data-testid="sub-filter-wrapper"]', 5000)
+    const subFilterWrapper = await this.waitForElement('[data-testid="sub-filter-wrapper"]', 3000) // Reduced timeout for faster failure detection
     if (!subFilterWrapper) {
       console.error('❌ Brand list did not appear after clicking')
       return
@@ -225,7 +295,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100) // Optimized for faster brand tab search
+      await this.delay(50) // Ultra-fast brand tab search
       attempts++
       console.log(`⚠️ Brand tab not found in attempt ${attempts}, retrying...`)
     }
@@ -278,7 +348,7 @@ class ZalandoFilter {
                 try {
                   (item as HTMLElement).click()
                   selectedCount++
-                  await this.delay(100) // Small delay between clicks
+                  await this.delay(30) // Minimal delay between clicks
                 } catch (clickError) {
                   console.error('Error clicking brand:', clickError)
                 }
@@ -325,7 +395,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100) // Optimized for faster retry
+      await this.delay(50) // Optimized for faster retry
       attempts++
       console.log(`⚠️ Retrying brand selection, attempt ${attempts}...`)
     }
@@ -355,7 +425,7 @@ class ZalandoFilter {
     return false
   }
 
-  private async waitForElement(selector: string, timeout: number = 5000): Promise<Element | null> {
+  private async waitForElement(selector: string, timeout: number = 3000): Promise<Element | null> {
     return new Promise((resolve) => {
       const element = document.querySelector(selector)
       if (element) {
@@ -398,7 +468,7 @@ class ZalandoFilter {
 
     // Wait for size list to appear
     console.log('⏳ Waiting for size list to appear...')
-    await this.waitForElement('[data-testid="sub-filter-wrapper"]', 5000)
+    await this.waitForElement('[data-testid="sub-filter-wrapper"]', 3000) // Reduced timeout for faster failure detection
 
     // Find and select matching sizes
     await this.selectMatchingSizes(targetSizes)
@@ -423,7 +493,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100) // Optimized for faster tab search
+      await this.delay(50) // Optimized for faster tab search
       attempts++
     }
 
@@ -474,7 +544,7 @@ class ZalandoFilter {
                   (checkbox as HTMLElement).click()
                   selectedCount = selectedCount + 1  // Explicit increment
                   logToStorage('LOG', `✅ Clicked size checkbox, new count: ${selectedCount}`)
-                  await this.delay(100)
+                  await this.delay(30)
                 } catch (clickError) {
                   logToStorage('ERROR', `Failed to click size checkbox: ${clickError}`)
                   console.error('Failed to click size checkbox:', clickError)
@@ -518,7 +588,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100) // Optimized for faster retry for sizes
+      await this.delay(50) // Optimized for faster retry for sizes
       attempts++
     }
 
@@ -556,7 +626,7 @@ class ZalandoFilter {
 
     // Wait for category list to appear
     console.log('⏳ Waiting for category list to appear...')
-    const categoryFilter = await this.waitForElement('[data-testid="category-filter"]', 5000)
+    const categoryFilter = await this.waitForElement('[data-testid="category-filter"]', 3000) // Reduced timeout for faster failure detection
     if (!categoryFilter) {
       console.error('❌ Category filter did not appear after clicking')
       return
@@ -570,7 +640,7 @@ class ZalandoFilter {
 
       // Wait for categories to load after gender selection
       console.log('⏳ Waiting for categories to load after gender selection...')
-      await this.delay(1000)
+      await this.delay(300) // Reduced gender selection wait
       console.log('✅ Ready to apply category filters')
     }
 
@@ -619,7 +689,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100)
+      await this.delay(50)
       attempts++
     }
 
@@ -668,7 +738,7 @@ class ZalandoFilter {
               console.log(`🖱️ Clicking gender button: "${genderText}"`)
               logToStorage('LOG', `🖱️ Clicking gender button: "${genderText}"`);  // Added semicolon
               (button as HTMLElement).click()
-              await this.delay(500) // Optimized delay for gender selection
+              await this.delay(200) // Fast gender selection
               return
             } else {
               console.log(`⚠️ Gender "${genderText}" already selected`)
@@ -682,7 +752,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(250)
+      await this.delay(50) // Faster category polling
       attempts++
     }
 
@@ -740,7 +810,7 @@ class ZalandoFilter {
               console.log(`🖱️ Clicking main category button: "${categoryText}"`)
               logToStorage('LOG', `🖱️ Clicking main category button: "${categoryText}"`);
               (button as HTMLElement).click()
-              await this.delay(300)
+              await this.delay(150) // Faster click delay
               return
             } else {
               console.log(`⚠️ Main category "${categoryText}" already selected`)
@@ -770,7 +840,7 @@ class ZalandoFilter {
               console.log(`🖱️ Clicking sub-category button: "${categoryText}"`)
               logToStorage('LOG', `🖱️ Clicking sub-category button: "${categoryText}"`);
               (button as HTMLElement).click()
-              await this.delay(300)
+              await this.delay(150) // Faster click delay
               return
             } else {
               console.log(`⚠️ Sub-category "${categoryText}" already selected`)
@@ -781,7 +851,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(250)
+      await this.delay(50) // Faster category polling
       attempts++
     }
 
@@ -832,7 +902,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100)
+      await this.delay(50)
       attempts++
     }
 
@@ -883,7 +953,7 @@ class ZalandoFilter {
               console.log(`🖱️ Clicking sort checkbox: "${optionText}"`)
               logToStorage('LOG', `🖱️ Clicking sort checkbox: "${optionText}"`);
               (checkbox as HTMLElement).click()
-              await this.delay(300)
+              await this.delay(150) // Faster click delay
               return
             } else {
               console.log(`⚠️ Sort option "${optionText}" already selected`)
@@ -894,7 +964,7 @@ class ZalandoFilter {
         }
       }
 
-      await this.delay(100)
+      await this.delay(50)
       attempts++
     }
 
@@ -904,6 +974,465 @@ class ZalandoFilter {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  // ========================================
+  // PRODUCT RESERVATION SYSTEM
+  // ========================================
+
+  private async startProductReservationsWithWait(itemsToAdd: number, userSizeFilters?: string[]): Promise<void> {
+    try {
+      console.log(`🔍 Waiting for products to appear after filtering...`)
+
+      // Smart waiting - check for products with retries
+      let products = 0
+      const maxWaitAttempts = 10 // 10 attempts = 5 seconds max
+
+      for (let attempt = 1; attempt <= maxWaitAttempts; attempt++) {
+        products = this.countAvailableProducts()
+        console.log(`🔄 Attempt ${attempt}: Found ${products} products`)
+
+        if (products > 0) {
+          console.log(`✅ Products found after ${attempt} attempts`)
+          break
+        }
+
+        await this.delay(500) // Wait 500ms between attempts
+      }
+
+      if (products === 0) {
+        console.error('❌ No products found after waiting')
+        logToStorage('ERROR', 'No products found after waiting')
+        return
+      }
+
+      // Start reservations
+      await this.startProductReservations(itemsToAdd, userSizeFilters)
+
+    } catch (error) {
+      console.error('❌ Product reservation wait failed:', error)
+      logToStorage('ERROR', `Product reservation wait failed: ${error}`)
+    }
+  }
+
+  private async startProductReservations(itemsToAdd: number, userSizeFilters?: string[]): Promise<void> {
+    try {
+      console.log(`🔍 Looking for ${itemsToAdd} products to reserve...`)
+      logToStorage('LOG', `🔍 Looking for ${itemsToAdd} products to reserve...`)
+
+      // Count available product cards
+      const availableProducts = this.countAvailableProducts()
+
+      if (availableProducts === 0) {
+        console.error('❌ No products found on current page')
+        logToStorage('ERROR', 'No products found on current page')
+        return
+      }
+
+      const itemsToProcess = Math.min(itemsToAdd, availableProducts)
+      console.log(`✅ Found ${availableProducts} products, will reserve ${itemsToProcess}`)
+      logToStorage('LOG', `✅ Found ${availableProducts} products, will reserve ${itemsToProcess}`)
+
+      // Open each product in new tab by targeting specific product cards
+      const reservationPromises = Array.from({ length: itemsToProcess }, (_, index) =>
+        this.openProductCardInNewTab(index, userSizeFilters, index + 1)
+      )
+
+      // Execute all reservations in parallel
+      const results = await Promise.allSettled(reservationPromises)
+
+      // Log results
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      console.log(`🎯 Reservation completed: ${successful} successful, ${failed} failed`)
+      logToStorage('LOG', `🎯 Reservation completed: ${successful} successful, ${failed} failed`)
+
+    } catch (error) {
+      console.error('❌ Product reservation failed:', error)
+      logToStorage('ERROR', `Product reservation failed: ${error}`)
+    }
+  }
+
+  private countAvailableProducts(): number {
+    try {
+      console.log('🔍 Debugging product search...')
+
+      // Debug: Check if articleListWrapper exists
+      const articleList = document.querySelector('#articleListWrapper')
+      console.log('🔍 articleListWrapper found:', !!articleList)
+
+      if (!articleList) {
+        console.error('❌ Article list container not found')
+        // Try alternative selectors
+        const alternatives = [
+          '.ListWrapper-sc-do0tac-0',
+          '[class*="ListWrapper"]',
+          'ul[id*="article"]'
+        ]
+
+        for (const alt of alternatives) {
+          const altElement = document.querySelector(alt)
+          console.log(`🔍 Alternative selector "${alt}":`, !!altElement)
+          if (altElement) {
+            const cards = altElement.querySelectorAll('[data-testid="lux-article-card"]')
+            console.log(`📦 Found ${cards.length} product cards using alternative selector`)
+            return cards.length
+          }
+        }
+
+        return 0
+      }
+
+      // Debug: Check innerHTML
+      console.log('🔍 articleListWrapper innerHTML length:', articleList.innerHTML.length)
+      console.log('🔍 articleListWrapper children count:', articleList.children.length)
+
+      // Try different selectors for product cards
+      const selectors = [
+        '[data-testid="lux-article-card"]',
+        '.ArticleWrapper-sc-hib3gs-0',
+        'li[id^="article-"]'
+      ]
+
+      for (const selector of selectors) {
+        const cards = articleList.querySelectorAll(selector)
+        console.log(`🔍 Selector "${selector}": ${cards.length} cards found`)
+        if (cards.length > 0) {
+          return cards.length
+        }
+      }
+
+      console.log('❌ No product cards found with any selector')
+      return 0
+
+    } catch (error) {
+      console.error('❌ Failed to count products:', error)
+      return 0
+    }
+  }
+
+  private extractProductUrlsFromCurrentPage(maxItems: number): string[] {
+    const urls: string[] = []
+
+    try {
+      // Find the article list container
+      const articleList = document.querySelector('#articleListWrapper')
+      if (!articleList) {
+        console.error('❌ Article list container not found')
+        return urls
+      }
+
+      // Get all product links within the container
+      const productLinks = articleList.querySelectorAll('li[id^="article-"] a[href*="/articles/"]')
+      console.log(`📦 Found ${productLinks.length} products in article list`)
+
+      // Extract URLs (limit to maxItems)
+      const itemsToProcess = Math.min(maxItems, productLinks.length)
+      for (let i = 0; i < itemsToProcess; i++) {
+        const link = productLinks[i] as HTMLAnchorElement
+        if (link.href) {
+          // Convert relative URLs to absolute
+          const fullUrl = new URL(link.href, window.location.origin).href
+          urls.push(fullUrl)
+        }
+      }
+
+      console.log(`🔗 Extracted ${urls.length} product URLs`)
+      return urls
+
+    } catch (error) {
+      console.error('❌ Failed to extract product URLs:', error)
+      return urls
+    }
+  }
+
+  private async openProductCardInNewTab(cardIndex: number, userSizeFilters: string[] = [], itemNumber: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`🚀 [${itemNumber}] Opening product card ${cardIndex} in new tab`)
+        logToStorage('LOG', `🚀 [${itemNumber}] Opening product card ${cardIndex}`)
+
+        // Find the specific product card
+        const articleList = document.querySelector('#articleListWrapper')
+        if (!articleList) {
+          reject(new Error('Article list not found'))
+          return
+        }
+
+        const productCards = articleList.querySelectorAll('[data-testid="lux-article-card"]')
+        console.log(`📦 Found ${productCards.length} product cards`)
+
+        if (cardIndex >= productCards.length) {
+          reject(new Error(`Product card ${cardIndex} not found`))
+          return
+        }
+
+        const targetCard = productCards[cardIndex] as HTMLElement
+        const productLink = targetCard.querySelector('a[href*="/articles/"]') as HTMLAnchorElement
+
+        if (!productLink || !productLink.href) {
+          reject(new Error(`Product link not found in card ${cardIndex}`))
+          return
+        }
+
+        const productUrl = productLink.href
+        console.log(`🔗 [${itemNumber}] Product URL: ${productUrl}`)
+
+        // Set up reservation data for localStorage
+        const reservationId = `reservation_${itemNumber}_${Date.now()}`
+        const reservationData = {
+          sizeFilters: userSizeFilters,
+          itemNumber: itemNumber,
+          timestamp: Date.now()
+        }
+
+        localStorage.setItem(reservationId, JSON.stringify(reservationData))
+
+        // Create a new tab with reservation parameter
+        const urlWithReservation = `${productUrl}${productUrl.includes('?') ? '&' : '?'}autoReserve=${reservationId}`
+
+        // Open in new tab
+        const newTab = window.open(urlWithReservation, '_blank')
+
+        if (!newTab) {
+          reject(new Error('Failed to open new tab'))
+          return
+        }
+
+        console.log(`✅ [${itemNumber}] Product opened in new tab`)
+
+        // Clean up localStorage after some time
+        setTimeout(() => {
+          localStorage.removeItem(reservationId)
+        }, 30000)
+
+        resolve()
+
+      } catch (error) {
+        console.error(`❌ [${itemNumber}] Failed to open product card:`, error)
+        reject(error)
+      }
+    })
+  }
+
+  private async reserveProductInNewTab(productUrl: string, userSizeFilters: string[] = [], itemNumber: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`🚀 [${itemNumber}] Opening product in new tab: ${productUrl}`)
+        logToStorage('LOG', `🚀 [${itemNumber}] Opening product: ${productUrl}`)
+
+        // Open in new tab
+        const newTab = window.open(productUrl, '_blank')
+
+        if (!newTab) {
+          reject(new Error('Failed to open new tab'))
+          return
+        }
+
+        // Set up a unique identifier for this reservation
+        const reservationId = `reservation_${itemNumber}_${Date.now()}`
+
+        // Store reservation data in localStorage for the new tab to pick up
+        const reservationData = {
+          sizeFilters: userSizeFilters,
+          itemNumber: itemNumber,
+          timestamp: Date.now()
+        }
+
+        localStorage.setItem(reservationId, JSON.stringify(reservationData))
+
+        // Add URL parameter to signal reservation needed
+        const urlWithReservation = `${productUrl}${productUrl.includes('?') ? '&' : '?'}autoReserve=${reservationId}`
+
+        // Navigate to the URL with reservation parameter
+        newTab.location.href = urlWithReservation
+
+        // Clean up localStorage after some time
+        setTimeout(() => {
+          localStorage.removeItem(reservationId)
+        }, 30000) // Clean up after 30 seconds
+
+        resolve()
+
+      } catch (error) {
+        console.error(`❌ [${itemNumber}] Failed to reserve product:`, error)
+        reject(error)
+      }
+    })
+  }
+
+  private async reserveCurrentProduct(sizeFilters: string[] = [], itemNumber: number): Promise<void> {
+    try {
+      console.log(`🛒 [${itemNumber}] Starting reservation on: ${window.location.href}`)
+      logToStorage('LOG', `🛒 [${itemNumber}] Starting reservation on: ${window.location.href}`)
+
+      // Wait for product page to load
+      await this.waitForPageLoad()
+      console.log(`✅ [${itemNumber}] Product page loaded`)
+
+      // Find and select size
+      const sizeSelected = await this.selectAvailableSize(sizeFilters, itemNumber)
+      if (!sizeSelected) {
+        throw new Error('No available size found')
+      }
+
+      // Add to cart
+      await this.addToCart(itemNumber)
+      console.log(`🎉 [${itemNumber}] Product successfully added to cart!`)
+      logToStorage('LOG', `🎉 [${itemNumber}] Product successfully added to cart!`)
+
+    } catch (error) {
+      console.error(`❌ [${itemNumber}] Reservation failed:`, error)
+      logToStorage('ERROR', `❌ [${itemNumber}] Reservation failed: ${error}`)
+      throw error
+    }
+  }
+
+  private async selectAvailableSize(userSizeFilters: string[], itemNumber: number): Promise<boolean> {
+    try {
+      console.log(`👔 [${itemNumber}] Looking for available sizes...`)
+      console.log(`📏 [${itemNumber}] User size filters:`, userSizeFilters)
+
+      // Wait for size section to be available
+      const sizeSection = await this.waitForElement('#article-size-section', 3000) // Reduced timeout for faster failure detection
+      if (!sizeSection) {
+        console.error(`❌ [${itemNumber}] Size section not found`)
+        return false
+      }
+
+      // Get all size radio buttons
+      const sizeButtons = sizeSection.querySelectorAll('input[type="radio"][name="size"]')
+      console.log(`👔 [${itemNumber}] Found ${sizeButtons.length} size options`)
+
+      // Log all available sizes for debugging
+      const availableSizes: string[] = []
+      for (const button of sizeButtons) {
+        const sizeButton = button as HTMLInputElement
+        const label = sizeButton.closest('label')
+        if (label) {
+          const sizeText = label.textContent?.trim() || ''
+          const disabled = sizeButton.disabled
+          availableSizes.push(`${sizeText}${disabled ? ' (disabled)' : ''}`)
+        }
+      }
+      console.log(`📋 [${itemNumber}] Available sizes:`, availableSizes)
+
+      // Try to find matching size from user filters
+      if (userSizeFilters && userSizeFilters.length > 0) {
+        for (const targetSize of userSizeFilters) {
+          const trimmedSize = targetSize.trim()
+
+          console.log(`🔍 [${itemNumber}] Looking for target size: "${trimmedSize}"`)
+
+          // Step 1: Try exact match first
+          let exactFound = false
+          let exactDisabled = false
+          for (const button of sizeButtons) {
+            const sizeButton = button as HTMLInputElement
+            const label = sizeButton.closest('label')
+
+            if (label) {
+              const sizeText = label.textContent?.trim() || ''
+
+              if (sizeText === trimmedSize) {
+                exactFound = true
+                if (!sizeButton.disabled) {
+                  console.log(`✅ [${itemNumber}] Exact match found: ${sizeText}`)
+                  logToStorage('LOG', `✅ [${itemNumber}] Exact match: ${sizeText}`)
+
+                  sizeButton.click()
+                  await this.delay(200)
+                  return true
+                } else {
+                  exactDisabled = true
+                  console.log(`⚠️ [${itemNumber}] Exact match found but disabled: ${sizeText}`)
+                }
+              }
+            }
+          }
+
+          // Step 2: Try partial match (e.g., "41" matches "41 1/3")
+          let partialFound = false
+          let partialDisabled = false
+          for (const button of sizeButtons) {
+            const sizeButton = button as HTMLInputElement
+            const label = sizeButton.closest('label')
+
+            if (label) {
+              const sizeText = label.textContent?.trim() || ''
+
+              if (sizeText.startsWith(trimmedSize + ' ')) {
+                partialFound = true
+                if (!sizeButton.disabled) {
+                  console.log(`✅ [${itemNumber}] Partial match found: ${sizeText} (target: ${trimmedSize})`)
+                  logToStorage('LOG', `✅ [${itemNumber}] Partial match: ${sizeText}`)
+
+                  sizeButton.click()
+                  await this.delay(200)
+                  return true
+                } else {
+                  partialDisabled = true
+                  console.log(`⚠️ [${itemNumber}] Partial match found but disabled: ${sizeText}`)
+                }
+              }
+            }
+          }
+
+          // Log why size wasn't found
+          if (exactFound && exactDisabled) {
+            console.log(`❌ [${itemNumber}] Size "${trimmedSize}" exists but is sold out`)
+          } else if (partialFound && partialDisabled) {
+            console.log(`❌ [${itemNumber}] Similar sizes found but all sold out`)
+          } else if (!exactFound && !partialFound) {
+            console.log(`❌ [${itemNumber}] Size "${trimmedSize}" not found in product`)
+          }
+        }
+      }
+
+      // If no matching size found, DON'T add to cart (better to skip than wrong size)
+      console.error(`❌ [${itemNumber}] Target size not found, skipping product (better than wrong size)`)
+      logToStorage('ERROR', `❌ [${itemNumber}] Target size "${userSizeFilters.join(',')}" not available, skipping product`)
+      return false
+
+    } catch (error) {
+      console.error(`❌ [${itemNumber}] Size selection failed:`, error)
+      return false
+    }
+  }
+
+  private async addToCart(itemNumber: number): Promise<void> {
+    try {
+      console.log(`🛒 [${itemNumber}] Looking for add to cart button...`)
+
+      // Wait for add to cart button
+      const addToCartButton = await this.waitForElement('#addToCartButton button', 3000) // Reduced timeout for faster failure detection
+      if (!addToCartButton) {
+        throw new Error('Add to cart button not found')
+      }
+
+      const button = addToCartButton as HTMLButtonElement
+
+      // Check if button is enabled
+      if (button.disabled) {
+        throw new Error('Add to cart button is disabled (no size selected?)')
+      }
+
+      console.log(`🖱️ [${itemNumber}] Clicking add to cart button`)
+      logToStorage('LOG', `🖱️ [${itemNumber}] Clicking add to cart button`)
+
+      button.click()
+
+      // Wait a moment for the action to process
+      await this.delay(1000)
+
+      // Check for success indicators (could be improved with specific selectors)
+      console.log(`✅ [${itemNumber}] Add to cart action completed`)
+
+    } catch (error) {
+      console.error(`❌ [${itemNumber}] Add to cart failed:`, error)
+      throw error
+    }
   }
 }
 
