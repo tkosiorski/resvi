@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { DebugLogger } from '../../utils/debug-logger'
 
 interface Campaign {
   id: string
@@ -14,6 +15,8 @@ interface Campaign {
 }
 
 export default function Popup() {
+  const debugLogger = DebugLogger.getInstance()
+
   const [campaignId, setCampaignId] = useState('')
   const [executionTime, setExecutionTime] = useState('')
   const [brand, setBrand] = useState('Salomon')
@@ -24,14 +27,40 @@ export default function Popup() {
   const [itemsToAdd, setItemsToAdd] = useState(5)
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([])
 
+  // Category filter state
+  const [gender, setGender] = useState('')
+  const [clothingCategory, setClothingCategory] = useState('')
+  const [shoesCategory, setShoesCategory] = useState('')
+  const [accessoriesCategory, setAccessoriesCategory] = useState('')
+  const [equipmentCategory, setEquipmentCategory] = useState('')
+
   // Test zone state
-  const [testCampaignId, setTestCampaignId] = useState('')
   const [testLogs, setTestLogs] = useState<string[]>([])
   const [showTestZone, setShowTestZone] = useState(true)
+
+  // Debounce timer ref for saving
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Refs to hold current values to avoid closure issues
+  const currentValuesRef = useRef({
+    campaignId: '',
+    brand: 'Salomon',
+    size: '46',
+    color: '',
+    maxPrice: 300,
+    sortMethod: 'Popularne',
+    itemsToAdd: 5,
+    gender: '',
+    clothingCategory: '',
+    shoesCategory: '',
+    accessoriesCategory: '',
+    equipmentCategory: ''
+  })
 
   useEffect(() => {
     loadActiveCampaigns()
     loadTestZoneData()
+    loadMainFormData()
   }, [])
 
   const loadTestZoneData = async () => {
@@ -39,7 +68,6 @@ export default function Popup() {
       const result = await chrome.storage.local.get(['testZoneData'])
       const testData = result.testZoneData
       if (testData) {
-        setTestCampaignId(testData.campaignId || '')
         setTestLogs(testData.logs || [])
         setShowTestZone(testData.showTestZone !== undefined ? testData.showTestZone : true)
       }
@@ -48,11 +76,104 @@ export default function Popup() {
     }
   }
 
-  const saveTestZoneData = async (campaignId: string, logs: string[], showZone: boolean) => {
+  const loadMainFormData = async () => {
+    try {
+      console.log('📥 Loading main form data...')
+      const result = await chrome.storage.local.get(['mainFormData'])
+      const formData = result.mainFormData
+
+      console.log('📊 Loaded main form data from storage:', formData)
+
+      if (formData) {
+        console.log('📝 Setting form values:', {
+          campaignId: formData.campaignId,
+          brand: formData.brand,
+          size: formData.size,
+          color: formData.color,
+          maxPrice: formData.maxPrice,
+          sortMethod: formData.sortMethod,
+          itemsToAdd: formData.itemsToAdd
+        })
+
+        // Add detailed logging for brand field specifically
+        console.log(`🔍 BRAND FIELD DEBUG:`)
+        console.log(`  Raw storage value: "${formData.brand}"`)
+        console.log(`  String length: ${(formData.brand || '').length}`)
+        console.log(`  Character codes:`, [...(formData.brand || '')].map(c => `${c}(${c.charCodeAt(0)})`))
+
+        setCampaignId(formData.campaignId || '')
+        setBrand(formData.brand || 'Salomon')
+        setSize(formData.size || '46')
+        setColor(formData.color || '')
+        setMaxPrice(formData.maxPrice || 300)
+        setSortMethod(formData.sortMethod || 'Popularne')
+        setItemsToAdd(formData.itemsToAdd || 5)
+        setGender(formData.gender || '')
+        setClothingCategory(formData.clothingCategory || '')
+        setShoesCategory(formData.shoesCategory || '')
+        setAccessoriesCategory(formData.accessoriesCategory || '')
+        setEquipmentCategory(formData.equipmentCategory || '')
+      } else {
+        console.log('⚠️ No saved form data found, using defaults')
+      }
+    } catch (error) {
+      console.error('❌ Failed to load main form data:', error)
+    }
+  }
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    currentValuesRef.current = {
+      campaignId,
+      brand,
+      size,
+      color,
+      maxPrice,
+      sortMethod,
+      itemsToAdd,
+      gender,
+      clothingCategory,
+      shoesCategory,
+      accessoriesCategory,
+      equipmentCategory
+    }
+  }, [campaignId, brand, size, color, maxPrice, sortMethod, itemsToAdd, gender, clothingCategory, shoesCategory, accessoriesCategory, equipmentCategory])
+
+  const saveMainFormData = useCallback(() => {
+    // Clear existing timer
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      console.log('🔄 Cleared previous save timer')
+    }
+
+    // Set new timer - use ref values to avoid closure trap
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        // Get values from ref (always current)
+        const dataToSave = { ...currentValuesRef.current }
+
+        console.log('🔄 Saving main form data:', dataToSave)
+
+        await chrome.storage.local.set({
+          mainFormData: dataToSave
+        })
+
+        console.log('✅ Main form data saved successfully')
+
+        // Immediately verify what was saved
+        const verification = await chrome.storage.local.get(['mainFormData'])
+        const saved = verification.mainFormData
+        console.log('🔍 VERIFICATION - What was actually saved:', saved)
+      } catch (error) {
+        console.error('❌ Failed to save main form data:', error)
+      }
+    }, 500)
+  }, [])
+
+  const saveTestZoneData = async (logs: string[], showZone: boolean) => {
     try {
       await chrome.storage.local.set({
         testZoneData: {
-          campaignId,
           logs,
           showTestZone: showZone
         }
@@ -130,53 +251,131 @@ export default function Popup() {
     }
   }
 
-  const handleTestCampaignIdChange = (value: string) => {
-    setTestCampaignId(value)
-    saveTestZoneData(value, testLogs, showTestZone)
-  }
-
   const addTestLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString('pl-PL')
     const logEntry = `[${timestamp}] ${message}`
     const newLogs = [...testLogs, logEntry]
     setTestLogs(newLogs)
-    saveTestZoneData(testCampaignId, newLogs, showTestZone)
+    saveTestZoneData(newLogs, showTestZone)
   }
 
   const clearTestLogs = () => {
     setTestLogs([])
-    saveTestZoneData(testCampaignId, [], showTestZone)
+    saveTestZoneData([], showTestZone)
   }
 
   const handleTestButtonClick = async () => {
-    if (!testCampaignId) {
+    if (!campaignId) {
       alert('Proszę wpisać ID kampanii do testowania')
       return
     }
 
-    addTestLog(`Przekierowuję do kampanii: ${testCampaignId}`)
+    addTestLog(`=== TEST ROZPOCZĘTY ===`)
+    addTestLog(`Kampania: ${campaignId}`)
 
     try {
-      // Get current active tab and navigate to campaign URL
-      const campaignUrl = `https://www.zalando-lounge.pl/campaigns/${testCampaignId}`
+      // Navigate to campaign page
+      const campaignUrl = `https://www.zalando-lounge.pl/campaigns/${campaignId}`
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
       if (activeTab?.id) {
         await chrome.tabs.update(activeTab.id, { url: campaignUrl })
+        addTestLog(`✅ Przekierowano na: ${campaignUrl}`)
+
+        // Apply filters after page loads
+        setTimeout(async () => {
+          await applyFiltersToCurrentTab(activeTab.id!)
+        }, 5000)
       }
     } catch (error) {
       console.error('Failed to navigate to campaign:', error)
-      addTestLog('Błąd podczas przekierowania do kampanii')
+      addTestLog(`❌ Błąd: ${error.message}`)
+    }
+  }
+
+  const applyFiltersToCurrentTab = async (tabId: number) => {
+    try {
+      addTestLog('🔄 Aplikuję filtry...')
+
+      // Check if content script is ready
+      let contentScriptReady = false
+      const maxAttempts = 10
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' })
+          if (response?.pong) {
+            contentScriptReady = true
+            break
+          }
+        } catch (error) {
+          addTestLog(`⚠️ Próba ${attempt}: Content script nie gotowy`)
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+      }
+
+      if (!contentScriptReady) {
+        addTestLog('❌ Content script nie odpowiada')
+        return
+      }
+
+      // Prepare filter config
+      const filterConfig = {
+        brand: brand ? brand.split(',').map(b => b.trim()).filter(b => b.length > 0) : [],
+        size: size ? size.split(',').map(s => s.trim()).filter(s => s.length > 0) : [],
+        color: color || undefined,
+        maxPrice: maxPrice || undefined,
+        sortMethod: sortMethod || undefined,
+        itemsToAdd: itemsToAdd || undefined,
+        category: (gender || clothingCategory || shoesCategory || accessoriesCategory || equipmentCategory) ? {
+          gender: gender || undefined,
+          clothingCategory: clothingCategory || undefined,
+          shoesCategory: shoesCategory || undefined,
+          accessoriesCategory: accessoriesCategory || undefined,
+          equipmentCategory: equipmentCategory || undefined
+        } : undefined
+      }
+
+      addTestLog(`📤 Wysyłam filtry: ${JSON.stringify(filterConfig)}`)
+
+      // Send filters to content script
+      const response = await chrome.tabs.sendMessage(tabId, {
+        type: 'APPLY_FILTERS',
+        config: filterConfig
+      })
+
+      if (response?.success) {
+        addTestLog('✅ Filtry zastosowane pomyślnie!')
+      } else {
+        addTestLog(`❌ Błąd filtrów: ${response?.error || 'Unknown error'}`)
+      }
+
+    } catch (error) {
+      console.error('Failed to apply filters:', error)
+      addTestLog(`❌ Błąd komunikacji: ${error.message}`)
     }
   }
 
   return (
-    <div className="p-4 bg-gray-50 min-h-full">
+    <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Resvi</h1>
-        <p className="text-sm text-gray-600">Automatyzacja Kampanii Zalando Lounge</p>
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">R</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Resvi</h1>
+              <p className="text-sm text-gray-600">Automatyzacja Zalando Lounge</p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="p-4 space-y-4">
 
       {/* Test Zone */}
       {showTestZone && (
@@ -186,7 +385,7 @@ export default function Popup() {
             <button
               onClick={() => {
                 setShowTestZone(false)
-                saveTestZoneData(testCampaignId, testLogs, false)
+                saveTestZoneData(testLogs, false)
               }}
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
@@ -195,26 +394,17 @@ export default function Popup() {
           </div>
 
           <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-blue-700 mb-1">
-                ID Kampanii do Testowania
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={testCampaignId}
-                  onChange={(e) => handleTestCampaignIdChange(e.target.value)}
-                  placeholder="np. ZZO3RYK"
-                  className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={handleTestButtonClick}
-                  disabled={!testCampaignId}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Test
-                </button>
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-blue-700">
+                <strong>Aktywna Kampania:</strong> {campaignId || 'Nie podano'}
               </div>
+              <button
+                onClick={handleTestButtonClick}
+                disabled={!campaignId}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Test
+              </button>
             </div>
 
             <div>
@@ -222,12 +412,26 @@ export default function Popup() {
                 <label className="block text-sm font-medium text-blue-700">
                   Logi
                 </label>
-                <button
-                  onClick={clearTestLogs}
-                  className="text-blue-600 hover:text-blue-800 text-xs"
-                >
-                  Wyczyść
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => debugLogger.downloadLogs()}
+                    className="text-blue-600 hover:text-blue-800 text-xs bg-blue-100 px-2 py-1 rounded"
+                  >
+                    📥 Pobierz
+                  </button>
+                  <button
+                    onClick={() => debugLogger.showRecentLogs(20)}
+                    className="text-blue-600 hover:text-blue-800 text-xs bg-blue-100 px-2 py-1 rounded"
+                  >
+                    👁️ Pokaż
+                  </button>
+                  <button
+                    onClick={clearTestLogs}
+                    className="text-blue-600 hover:text-blue-800 text-xs"
+                  >
+                    Wyczyść
+                  </button>
+                </div>
               </div>
               <div className="bg-white border border-blue-200 rounded-md p-3 h-24 overflow-y-auto text-xs font-mono">
                 {testLogs.length === 0 ? (
@@ -249,7 +453,7 @@ export default function Popup() {
           <button
             onClick={() => {
               setShowTestZone(true)
-              saveTestZoneData(testCampaignId, testLogs, true)
+              saveTestZoneData(testLogs, true)
             }}
             className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -258,152 +462,355 @@ export default function Popup() {
         </div>
       )}
 
-      {/* Campaign Configuration */}
-      <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">Zaplanuj Kampanię</h2>
 
-        <div className="space-y-3">
+      {/* Filter Configuration */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Konfiguracja Filtrów
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">Ustaw parametry wyszukiwania produktów</p>
+        </div>
+        <div className="p-4 space-y-6">
+          {/* Basic Filters */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ID Kampanii
-            </label>
-            <input
-              type="text"
-              value={campaignId}
-              onChange={(e) => setCampaignId(e.target.value)}
-              placeholder="np. ZZO3RYK"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+              Podstawowe
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Marka
+                </label>
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(e) => {
+                    setBrand(e.target.value)
+                    saveMainFormData()
+                  }}
+                  placeholder="np. adidas, nike"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rozmiar
+                </label>
+                <input
+                  type="text"
+                  value={size}
+                  onChange={(e) => {
+                    setSize(e.target.value)
+                    saveMainFormData()
+                  }}
+                  placeholder="46 lub 46,47,48"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
           </div>
 
-
+          {/* Categories */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Czas Wykonania
-            </label>
-            <input
-              type="datetime-local"
-              value={executionTime}
-              onChange={(e) => setExecutionTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+              Kategorie
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Płeć
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => {
+                    setGender(e.target.value)
+                    // Reset all category selections when gender changes
+                    setClothingCategory('')
+                    setShoesCategory('')
+                    setAccessoriesCategory('')
+                    setEquipmentCategory('')
+                    saveMainFormData()
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="">Wszystkie</option>
+                  <option value="Mężczyźni">Mężczyźni</option>
+                  <option value="Kobiety">Kobiety</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Odzież
+                  </label>
+                  <select
+                    value={clothingCategory}
+                    onChange={(e) => {
+                      const newValue = e.target.value
+                      setClothingCategory(newValue)
+                      // Reset other subcategories when clothing is selected
+                      if (newValue) {
+                        setShoesCategory('')
+                        setAccessoriesCategory('')
+                        setEquipmentCategory('')
+                      }
+                      // Save will be triggered by the useEffect
+                    }}
+                    disabled={!gender || shoesCategory || accessoriesCategory || equipmentCategory}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || shoesCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">{!gender ? 'Wybierz płeć' : (shoesCategory || accessoriesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
+                    {gender && (
+                      <>
+                        <option value="Wszystkie w kategorii Odzież">Wszystkie w kategorii Odzież</option>
+                        <option value="T-shirty i koszulki polo">T-shirty i koszulki polo</option>
+                        <option value="Swetry i bluzy">Swetry i bluzy</option>
+                        <option value="Kurtki i płaszcze">Kurtki i płaszcze</option>
+                        <option value="Spodnie">Spodnie</option>
+                        <option value="Dresy">Dresy</option>
+                        <option value="Koszulki klubowe i akcesoria dla kibiców">Koszulki klubowe</option>
+                        <option value="Bielizna">Bielizna</option>
+                        <option value="Skarpetki">Skarpetki</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Buty
+                  </label>
+                  <select
+                    value={shoesCategory}
+                    onChange={(e) => {
+                      const newValue = e.target.value
+                      setShoesCategory(newValue)
+                      // Reset other subcategories when shoes is selected
+                      if (newValue) {
+                        setClothingCategory('')
+                        setAccessoriesCategory('')
+                        setEquipmentCategory('')
+                      }
+                      // Save will be triggered by the useEffect
+                    }}
+                    disabled={!gender || clothingCategory || accessoriesCategory || equipmentCategory}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || accessoriesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
+                    {gender && (
+                      <>
+                        <option value="Wszystkie w kategorii Buty">Wszystkie w kategorii Buty</option>
+                        <option value="Buty sportowe">Buty sportowe</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Akcesoria
+                  </label>
+                  <select
+                    value={accessoriesCategory}
+                    onChange={(e) => {
+                      const newValue = e.target.value
+                      setAccessoriesCategory(newValue)
+                      // Reset other subcategories when accessories is selected
+                      if (newValue) {
+                        setClothingCategory('')
+                        setShoesCategory('')
+                        setEquipmentCategory('')
+                      }
+                      // Save will be triggered by the useEffect
+                    }}
+                    disabled={!gender || clothingCategory || shoesCategory || equipmentCategory}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || shoesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
+                    {gender && (
+                      <>
+                        <option value="Wszystkie w kategorii Akcesoria">Wszystkie w kategorii Akcesoria</option>
+                        <option value="Torby i walizki">Torby i walizki</option>
+                        <option value="Zegarki">Zegarki</option>
+                        <option value="Czapki i kapelusze">Czapki i kapelusze</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sprzęt
+                  </label>
+                  <select
+                    value={equipmentCategory}
+                    onChange={(e) => {
+                      const newValue = e.target.value
+                      setEquipmentCategory(newValue)
+                      // Reset other subcategories when equipment is selected
+                      if (newValue) {
+                        setClothingCategory('')
+                        setShoesCategory('')
+                        setAccessoriesCategory('')
+                      }
+                      // Save will be triggered by the useEffect
+                    }}
+                    disabled={!gender || clothingCategory || shoesCategory || accessoriesCategory}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || accessoriesCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || shoesCategory || accessoriesCategory ? 'Zablokowane' : 'Wszystkie')}</option>
+                    {gender && (
+                      <>
+                        <option value="Wszystkie w kategorii Sprzęt">Wszystkie w kategorii Sprzęt</option>
+                        <option value="Piłki i rakiety">Piłki i rakiety</option>
+                        <option value="Zegarki sportowe i elektronika">Zegarki sportowe</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Advanced Settings */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+              Dodatkowe
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Metoda Sortowania
+                </label>
+                <select
+                  value={sortMethod}
+                  onChange={(e) => {
+                    setSortMethod(e.target.value)
+                    saveMainFormData()
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="Popularne">Popularne</option>
+                  <option value="Najniższa cena">Najniższa cena</option>
+                  <option value="Najwyższa cena">Najwyższa cena</option>
+                  <option value="Wyprzedaż">Wyprzedaż</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ilość Produktów
+                </label>
+                <input
+                  type="number"
+                  value={itemsToAdd}
+                  onChange={(e) => {
+                    setItemsToAdd(parseInt(e.target.value))
+                    saveMainFormData()
+                  }}
+                  min="1"
+                  max="10"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Campaign Scheduling */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+            Planowanie Kampanii
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">Ustaw kampanię i czas automatycznego wykonania</p>
+        </div>
+        <div className="p-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Marka
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ID Kampanii
               </label>
               <input
                 type="text"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={campaignId}
+                onChange={(e) => {
+                  setCampaignId(e.target.value)
+                  saveMainFormData()
+                }}
+                placeholder="np. ZZO3RYK"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rozmiar
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Czas Wykonania
               </label>
               <input
-                type="text"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                type="datetime-local"
+                value={executionTime}
+                onChange={(e) => setExecutionTime(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kolor
-              </label>
-              <input
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="Opcjonalne"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Maks. Cena (€)
-              </label>
-              <input
-                type="number"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ilość Produktów
-              </label>
-              <input
-                type="number"
-                value={itemsToAdd}
-                onChange={(e) => setItemsToAdd(parseInt(e.target.value))}
-                min="1"
-                max="10"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Metoda Sortowania
-            </label>
-            <select
-              value={sortMethod}
-              onChange={(e) => setSortMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <button
+              onClick={handleScheduleCampaign}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:from-orange-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all transform hover:scale-105"
             >
-              <option value="Popularne">Popularne</option>
-              <option value="Najniższa cena">Najniższa cena</option>
-              <option value="Najwyższa cena">Najwyższa cena</option>
-              <option value="Wyprzedaż">Wyprzedaż</option>
-            </select>
+              📅 Zaplanuj Kampanię
+            </button>
           </div>
-
-          <button
-            onClick={handleScheduleCampaign}
-            className="w-full bg-primary-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            Zaplanuj Kampanię
-          </button>
         </div>
       </div>
 
       {/* Active Campaigns */}
-      <div className="bg-white rounded-lg p-4 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">Aktywne Kampanie</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            Aktywne Kampanie
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">Zaplanowane zadania automatyzacji</p>
+        </div>
+        <div className="p-4">
 
-        {activeCampaigns.length === 0 ? (
-          <p className="text-sm text-gray-500">Brak aktywnych kampanii</p>
-        ) : (
-          <div className="space-y-2">
-            {activeCampaigns.map((campaign) => (
-              <div key={campaign.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Kampania {campaign.id}</p>
+          {activeCampaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-gray-400 text-xl">📅</span>
+              </div>
+              <p className="text-sm text-gray-500">Brak aktywnych kampanii</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeCampaigns.map((campaign) => (
+                <div key={campaign.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Kampania {campaign.id}</p>
                   <p className="text-xs text-gray-500">
                     {new Date(campaign.executionTime).toLocaleString('pl-PL')}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleCancelCampaign(campaign.id)}
-                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                >
-                  Anuluj
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                  <button
+                    onClick={() => handleCancelCampaign(campaign.id)}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    Anuluj
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       </div>
     </div>
   )

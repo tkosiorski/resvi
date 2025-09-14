@@ -10,6 +10,9 @@
     "activeTab",
     "tabs"
   ],
+  "host_permissions": [
+    "https://www.zalando-lounge.pl/*"
+  ],
   "background": {
     "service_worker": "src/background/index.ts"
   },
@@ -29,6 +32,13 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://www.zalando-lounge.pl/*"],
+      "js": ["src/content-scripts/zalando-filter.ts"],
+      "run_at": "document_end"
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
