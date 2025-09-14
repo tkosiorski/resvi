@@ -24,9 +24,43 @@ export default function Popup() {
   const [itemsToAdd, setItemsToAdd] = useState(5)
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([])
 
+  // Test zone state
+  const [testCampaignId, setTestCampaignId] = useState('')
+  const [testLogs, setTestLogs] = useState<string[]>([])
+  const [showTestZone, setShowTestZone] = useState(true)
+
   useEffect(() => {
     loadActiveCampaigns()
+    loadTestZoneData()
   }, [])
+
+  const loadTestZoneData = async () => {
+    try {
+      const result = await chrome.storage.local.get(['testZoneData'])
+      const testData = result.testZoneData
+      if (testData) {
+        setTestCampaignId(testData.campaignId || '')
+        setTestLogs(testData.logs || [])
+        setShowTestZone(testData.showTestZone !== undefined ? testData.showTestZone : true)
+      }
+    } catch (error) {
+      console.error('Failed to load test zone data:', error)
+    }
+  }
+
+  const saveTestZoneData = async (campaignId: string, logs: string[], showZone: boolean) => {
+    try {
+      await chrome.storage.local.set({
+        testZoneData: {
+          campaignId,
+          logs,
+          showTestZone: showZone
+        }
+      })
+    } catch (error) {
+      console.error('Failed to save test zone data:', error)
+    }
+  }
 
   const loadActiveCampaigns = async () => {
     try {
@@ -96,6 +130,46 @@ export default function Popup() {
     }
   }
 
+  const handleTestCampaignIdChange = (value: string) => {
+    setTestCampaignId(value)
+    saveTestZoneData(value, testLogs, showTestZone)
+  }
+
+  const addTestLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString('pl-PL')
+    const logEntry = `[${timestamp}] ${message}`
+    const newLogs = [...testLogs, logEntry]
+    setTestLogs(newLogs)
+    saveTestZoneData(testCampaignId, newLogs, showTestZone)
+  }
+
+  const clearTestLogs = () => {
+    setTestLogs([])
+    saveTestZoneData(testCampaignId, [], showTestZone)
+  }
+
+  const handleTestButtonClick = async () => {
+    if (!testCampaignId) {
+      alert('Proszę wpisać ID kampanii do testowania')
+      return
+    }
+
+    addTestLog(`Przekierowuję do kampanii: ${testCampaignId}`)
+
+    try {
+      // Get current active tab and navigate to campaign URL
+      const campaignUrl = `https://www.zalando-lounge.pl/campaigns/${testCampaignId}`
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+      if (activeTab?.id) {
+        await chrome.tabs.update(activeTab.id, { url: campaignUrl })
+      }
+    } catch (error) {
+      console.error('Failed to navigate to campaign:', error)
+      addTestLog('Błąd podczas przekierowania do kampanii')
+    }
+  }
+
   return (
     <div className="p-4 bg-gray-50 min-h-full">
       {/* Header */}
@@ -103,6 +177,86 @@ export default function Popup() {
         <h1 className="text-xl font-bold text-gray-900 mb-1">Resvi</h1>
         <p className="text-sm text-gray-600">Automatyzacja Kampanii Zalando Lounge</p>
       </div>
+
+      {/* Test Zone */}
+      {showTestZone && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-blue-800">Strefa Testowa</h2>
+            <button
+              onClick={() => {
+                setShowTestZone(false)
+                saveTestZoneData(testCampaignId, testLogs, false)
+              }}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              Ukryj
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-1">
+                ID Kampanii do Testowania
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={testCampaignId}
+                  onChange={(e) => handleTestCampaignIdChange(e.target.value)}
+                  placeholder="np. ZZO3RYK"
+                  className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleTestButtonClick}
+                  disabled={!testCampaignId}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Test
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-blue-700">
+                  Logi
+                </label>
+                <button
+                  onClick={clearTestLogs}
+                  className="text-blue-600 hover:text-blue-800 text-xs"
+                >
+                  Wyczyść
+                </button>
+              </div>
+              <div className="bg-white border border-blue-200 rounded-md p-3 h-24 overflow-y-auto text-xs font-mono">
+                {testLogs.length === 0 ? (
+                  <p className="text-gray-500">Brak logów...</p>
+                ) : (
+                  testLogs.map((log, index) => (
+                    <div key={index} className="text-gray-800 mb-1">{log}</div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show Test Zone button when hidden */}
+      {!showTestZone && (
+        <div className="mb-4">
+          <button
+            onClick={() => {
+              setShowTestZone(true)
+              saveTestZoneData(testCampaignId, testLogs, true)
+            }}
+            className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Pokaż Strefę Testową
+          </button>
+        </div>
+      )}
 
       {/* Campaign Configuration */}
       <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
