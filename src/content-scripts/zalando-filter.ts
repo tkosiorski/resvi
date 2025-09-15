@@ -466,9 +466,21 @@ class ZalandoFilter {
     console.log('✅ Size tab found, clicking...')
     sizeTab.click()
 
+    // Wait for size category tabs to appear
+    console.log('⏳ Waiting for size category tabs to appear...')
+    await this.waitForElement('[class*="SizeTabs-"]', 3000)
+
+    // Find and click the shoes tab for shoe sizes
+    const shoesTab = await this.findShoesTab()
+    if (shoesTab) {
+      console.log('✅ Shoes tab found, clicking...')
+      shoesTab.click()
+      await this.delay(200)
+    }
+
     // Wait for size list to appear
     console.log('⏳ Waiting for size list to appear...')
-    await this.waitForElement('[data-testid="sub-filter-wrapper"]', 3000) // Reduced timeout for faster failure detection
+    await this.waitForElement('[data-testid="sub-filter-wrapper"]', 3000)
 
     // Find and select matching sizes
     await this.selectMatchingSizes(targetSizes)
@@ -501,6 +513,34 @@ class ZalandoFilter {
     return null
   }
 
+  private async findShoesTab(): Promise<HTMLElement | null> {
+    const maxAttempts = 10
+    let attempts = 0
+
+    while (attempts < maxAttempts) {
+      // Look for size category tabs using both current and potential future class names
+      const sizeTabs = document.querySelectorAll('button[role="tab"][aria-selected]')
+      console.log(`🔍 Looking for shoes tab, attempt ${attempts + 1}, found ${sizeTabs.length} size tabs`)
+
+      for (let i = 0; i < sizeTabs.length; i++) {
+        const button = sizeTabs[i]
+        const textContent = button.textContent?.toLowerCase() || ''
+        console.log(`🔘 Size category tab ${i}: "${textContent}"`)
+
+        if (textContent.includes('obuwie') || textContent.includes('shoes')) {
+          console.log(`✅ Found shoes tab at index ${i}: "${textContent}"`)
+          return button as HTMLElement
+        }
+      }
+
+      await this.delay(50)
+      attempts++
+    }
+
+    console.log('⚠️ Shoes tab not found, continuing without specific shoe category selection')
+    return null
+  }
+
   private async selectMatchingSizes(targetSizes: string[]): Promise<void> {
     console.log('📏 Selecting sizes for targets:', targetSizes)
 
@@ -520,7 +560,7 @@ class ZalandoFilter {
 
     while (attempts < maxAttempts) {
       // Look for size checkboxes using the structure we found
-      const sizeCheckboxes = document.querySelectorAll('li.SizeCheckboxWrapperLi-sc-1y48mbr-1 input[type="checkbox"]')
+      const sizeCheckboxes = document.querySelectorAll('li[class*="SizeCheckboxWrapperLi-"] input[type="checkbox"]')
       console.log(`🔍 Attempt ${attempts + 1}: Found ${sizeCheckboxes.length} size checkboxes`)
 
       if (sizeCheckboxes.length > 0) {
@@ -528,8 +568,8 @@ class ZalandoFilter {
 
         for (const checkbox of sizeCheckboxes) {
           try {
-            // Get the label text for this checkbox
-            const labelElement = checkbox.parentElement?.querySelector('span.gimXmz')
+            // Get the label text for this checkbox - it's the span in the same label element
+            const labelElement = checkbox.closest('label')?.querySelector('span:last-child')
             const sizeText = labelElement?.textContent?.trim() || ''
 
             if (uniqueSizesToSelect.includes(sizeText)) {
@@ -562,7 +602,7 @@ class ZalandoFilter {
         // Count already selected sizes that match our targets
         let alreadySelectedCount = 0
         sizeCheckboxes.forEach((checkbox) => {
-          const labelElement = checkbox.parentElement?.querySelector('span.gimXmz')
+          const labelElement = checkbox.closest('label')?.querySelector('span:last-child')
           const sizeText = labelElement?.textContent?.trim() || ''
 
           if (checkbox.checked && uniqueSizesToSelect.includes(sizeText)) {
@@ -942,7 +982,7 @@ class ZalandoFilter {
             (targetSort.toLowerCase() === 'nowości' && optionText.toLowerCase().includes('nowości')) ||
             (targetSort.toLowerCase() === 'najniższa cena' && optionText.toLowerCase().includes('najniższa cena')) ||
             (targetSort.toLowerCase() === 'najwyższa cena' && optionText.toLowerCase().includes('najwyższa cena')) ||
-            (targetSort.toLowerCase() === 'wyprzedaż' && optionText.toLowerCase().includes('wyprzedaż'))
+            (targetSort.toLowerCase() === 'wyprzedaż' && (optionText.toLowerCase().includes('wyprzedaż') || optionText.toLowerCase().includes('kwyprzedaż')))
 
           if (isMatch) {
             console.log(`✅ Found matching sort option: "${optionText}"`)
