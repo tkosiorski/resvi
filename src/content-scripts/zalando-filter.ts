@@ -122,6 +122,9 @@ class ZalandoFilter {
               await this.reserveCurrentProduct(reservationData.sizeFilters, reservationData.itemNumber)
             } catch (error) {
               console.error('Auto-reservation failed:', error)
+              // Close tab on error during auto-reservation
+              await this.delay(1000)
+              this.closeCurrentTab(`Auto-reservation failed: ${error}`)
             }
           }, 1000)
 
@@ -129,6 +132,9 @@ class ZalandoFilter {
           localStorage.removeItem(autoReserveId)
         } else {
           console.error('Auto-reservation data not found in localStorage')
+          // Close tab if no reservation data found
+          await this.delay(1000)
+          this.closeCurrentTab('No reservation data found')
         }
       }
     } catch (error) {
@@ -1016,6 +1022,20 @@ class ZalandoFilter {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
+  private closeCurrentTab(reason: string): void {
+    try {
+      console.log(`🔒 Closing tab: ${reason}`)
+      logToStorage('LOG', `🔒 Closing tab: ${reason}`)
+
+      // Close the current tab/window
+      window.close()
+
+    } catch (error) {
+      console.error('❌ Failed to close tab:', error)
+      logToStorage('ERROR', `Failed to close tab: ${error}`)
+    }
+  }
+
   // ========================================
   // PRODUCT RESERVATION SYSTEM
   // ========================================
@@ -1322,9 +1342,18 @@ class ZalandoFilter {
       console.log(`🎉 [${itemNumber}] Product successfully added to cart!`)
       logToStorage('LOG', `🎉 [${itemNumber}] Product successfully added to cart!`)
 
+      // Close the tab after successful reservation
+      await this.delay(1500) // Wait a bit to ensure cart update is processed
+      this.closeCurrentTab(`[${itemNumber}] Successfully added to cart`)
+
     } catch (error) {
       console.error(`❌ [${itemNumber}] Reservation failed:`, error)
       logToStorage('ERROR', `❌ [${itemNumber}] Reservation failed: ${error}`)
+
+      // Close the tab after failed reservation
+      await this.delay(1000)
+      this.closeCurrentTab(`[${itemNumber}] Reservation failed: ${error}`)
+
       throw error
     }
   }
