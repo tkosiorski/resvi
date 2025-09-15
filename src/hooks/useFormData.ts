@@ -18,7 +18,7 @@ interface FormData {
 
 const defaultFormData: FormData = {
   campaignId: '',
-  brand: 'Salomon',
+  brand: '',
   size: '46',
   color: '',
   maxPrice: 300,
@@ -70,19 +70,19 @@ export function useFormData() {
         console.log(`  Character codes:`, [...(savedData.brand || '')].map(c => `${c}(${c.charCodeAt(0)})`))
 
         setFormData({
-          campaignId: savedData.campaignId || '',
-          brand: savedData.brand || 'Salomon',
-          size: savedData.size || '46',
-          color: savedData.color || '',
-          maxPrice: savedData.maxPrice || 300,
-          sortMethod: savedData.sortMethod || 'Popularne',
-          itemsToAdd: savedData.itemsToAdd || 5,
-          executionTime: savedData.executionTime || '',
-          gender: savedData.gender || '',
-          clothingCategory: savedData.clothingCategory || '',
-          shoesCategory: savedData.shoesCategory || '',
-          accessoriesCategory: savedData.accessoriesCategory || '',
-          equipmentCategory: savedData.equipmentCategory || ''
+          campaignId: savedData.campaignId ?? '',
+          brand: savedData.brand ?? '',
+          size: savedData.size ?? '46',
+          color: savedData.color ?? '',
+          maxPrice: savedData.maxPrice ?? 300,
+          sortMethod: savedData.sortMethod ?? 'Popularne',
+          itemsToAdd: savedData.itemsToAdd ?? 5,
+          executionTime: savedData.executionTime ?? '',
+          gender: savedData.gender ?? '',
+          clothingCategory: savedData.clothingCategory ?? '',
+          shoesCategory: savedData.shoesCategory ?? '',
+          accessoriesCategory: savedData.accessoriesCategory ?? '',
+          equipmentCategory: savedData.equipmentCategory ?? ''
         })
       } else {
         console.log('⚠️ No saved form data found, using defaults')
