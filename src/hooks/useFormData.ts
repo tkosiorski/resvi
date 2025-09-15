@@ -9,6 +9,7 @@ interface FormData {
   sortMethod: string
   itemsToAdd: number
   executionTime: string
+  executionDelay: number
   gender: string
   clothingCategory: string
   shoesCategory: string
@@ -24,7 +25,8 @@ const defaultFormData: FormData = {
   maxPrice: 300,
   sortMethod: 'Popularne',
   itemsToAdd: 5,
-  executionTime: '',
+  executionTime: '07:00',
+  executionDelay: 500,
   gender: '',
   clothingCategory: '',
   shoesCategory: '',
@@ -77,7 +79,8 @@ export function useFormData() {
           maxPrice: savedData.maxPrice ?? 300,
           sortMethod: savedData.sortMethod ?? 'Popularne',
           itemsToAdd: savedData.itemsToAdd ?? 5,
-          executionTime: savedData.executionTime ?? '',
+          executionTime: savedData.executionTime ?? '07:00',
+          executionDelay: savedData.executionDelay ?? 500,
           gender: savedData.gender ?? '',
           clothingCategory: savedData.clothingCategory ?? '',
           shoesCategory: savedData.shoesCategory ?? '',
