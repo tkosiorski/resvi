@@ -1,20 +1,16 @@
 interface CampaignSchedulingProps {
   campaignId: string
   executionTime: string
-  executionDelay: number
   onCampaignIdChange: (value: string) => void
   onExecutionTimeChange: (value: string) => void
-  onExecutionDelayChange: (value: number) => void
   onScheduleCampaign: () => Promise<void>
 }
 
 export default function CampaignScheduling({
   campaignId,
   executionTime,
-  executionDelay,
   onCampaignIdChange,
   onExecutionTimeChange,
-  onExecutionDelayChange,
   onScheduleCampaign
 }: CampaignSchedulingProps) {
   return (
@@ -50,22 +46,6 @@ export default function CampaignScheduling({
               onChange={(e) => onExecutionTimeChange(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Opóźnienie Wykonania (ms)
-            </label>
-            <input
-              type="number"
-              value={executionDelay}
-              onChange={(e) => onExecutionDelayChange(parseInt(e.target.value) || 0)}
-              min="0"
-              max="5000"
-              step="100"
-              placeholder="500"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            />
-            <p className="text-xs text-gray-500 mt-1">Dodatkowe opóźnienie po zaplanowanym czasie (domyślnie 500ms)</p>
           </div>
           <button
             onClick={onScheduleCampaign}

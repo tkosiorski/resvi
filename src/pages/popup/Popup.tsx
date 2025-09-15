@@ -11,7 +11,6 @@ import { isValidCampaignId, isValidExecutionTime } from '../../utils/formatters'
 interface Campaign {
   id: string
   executionTime: number
-  executionDelay: number
   filters: {
     brand: string
     size: string
@@ -35,7 +34,6 @@ export default function Popup() {
     const campaign: Campaign = {
       id: formData.campaignId,
       executionTime: new Date(formData.executionTime).getTime(),
-      executionDelay: formData.executionDelay,
       filters: {
         brand: formData.brand,
         size: formData.size,
@@ -127,10 +125,8 @@ export default function Popup() {
         <CampaignScheduling
           campaignId={formData.campaignId}
           executionTime={formData.executionTime}
-          executionDelay={formData.executionDelay}
           onCampaignIdChange={(value) => updateField('campaignId', value)}
           onExecutionTimeChange={(value) => updateField('executionTime', value)}
-          onExecutionDelayChange={(value) => updateField('executionDelay', value)}
           onScheduleCampaign={handleScheduleCampaign}
         />
 

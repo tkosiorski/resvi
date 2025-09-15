@@ -77,14 +77,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 async function scheduleCampaign(campaign: any) {
   const alarmName = `campaign_${campaign.id}`
 
-  // Add the configured delay to the execution time
-  const delayedExecutionTime = campaign.executionTime + (campaign.executionDelay || 0)
-
   await chrome.alarms.create(alarmName, {
-    when: delayedExecutionTime
+    when: campaign.executionTime
   })
 
-  console.log('Campaign scheduled:', alarmName, new Date(campaign.executionTime), `with ${campaign.executionDelay || 0}ms delay`)
+  console.log('Campaign scheduled:', alarmName, new Date(campaign.executionTime))
 }
 
 // Cancel campaign alarm

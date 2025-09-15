@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 interface Campaign {
   id: string
   executionTime: number
-  executionDelay: number
   filters: {
     brand: string
     size: string
