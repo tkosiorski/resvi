@@ -1,12 +1,11 @@
 import Header from '../../components/Header'
 import TestZone from '../../components/TestZone'
-import FilterConfiguration from '../../components/FilterConfiguration'
-import CampaignScheduling from '../../components/CampaignScheduling'
+import CampaignPlanning from '../../components/CampaignPlanning'
 import ActiveCampaigns from '../../components/ActiveCampaigns'
 import { useFormData } from '../../hooks/useFormData'
 import { useCampaigns } from '../../hooks/useCampaigns'
+import { useCartExtension } from '../../hooks/useCartExtension'
 import { TestService } from '../../services/TestService'
-import { ZalandoApiService } from '../../services/ZalandoApiService'
 import { isValidCampaignId, isValidExecutionTime } from '../../utils/formatters'
 import { useState } from 'react'
 
@@ -27,6 +26,7 @@ interface Campaign {
 export default function Popup() {
   const { formData, updateField, resetCategoryFields } = useFormData()
   const { activeCampaigns, scheduleCampaign, cancelCampaign, clearHistory } = useCampaigns()
+  const { autoExtendCart, toggleCartExtension } = useCartExtension()
   const [version, setVersion] = useState<'v1' | 'v2'>('v2')
 
   const handleScheduleCampaign = async () => {
@@ -96,6 +96,10 @@ export default function Popup() {
       return
     }
 
+    alert('⚠️ V2 API Test - ZalandoApiService not implemented yet')
+
+    // TODO: Implement when ZalandoApiService is available
+    /*
     try {
       console.log('🚀 Starting V2 API Test...')
 
@@ -140,6 +144,7 @@ export default function Popup() {
       console.error('❌ V2 Test Error:', error)
       alert(`V2 Test Error: ${error}`)
     }
+    */
   }
 
   const handleV2WorkflowClick = async () => {
@@ -148,6 +153,10 @@ export default function Popup() {
       return
     }
 
+    alert('⚠️ V2 Full Workflow - ZalandoApiService not implemented yet')
+
+    // TODO: Implement when ZalandoApiService is available
+    /*
     try {
       console.log(`🚀 Starting V2 Full Workflow: Adding ${formData.itemsToAdd} products to cart...`)
 
@@ -205,6 +214,7 @@ export default function Popup() {
       console.error('❌ V2 Workflow Error:', error)
       alert(`V2 Workflow Error: ${error}`)
     }
+    */
   }
 
 
@@ -219,65 +229,64 @@ export default function Popup() {
     if (value) {
       const otherCategories = ['clothingCategory', 'shoesCategory', 'accessoriesCategory', 'equipmentCategory']
       otherCategories
-        .filter(cat => cat !== field)
-        .forEach(cat => updateField(cat, ''))
+          .filter(cat => cat !== field)
+          .forEach(cat => updateField(cat, ''))
     }
   }
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Header
-        version={version}
-        onVersionChange={setVersion}
-      />
-
-      <div className="p-4 space-y-4">
-        <CampaignScheduling
-          campaignId={formData.campaignId}
-          executionTime={formData.executionTime}
-          delay={formData.delay}
-          onCampaignIdChange={(value) => updateField('campaignId', value)}
-          onExecutionTimeChange={(value) => updateField('executionTime', value)}
-          onDelayChange={(value) => updateField('delay', value)}
-          onScheduleCampaign={handleScheduleCampaign}
+      <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Header
+            version={version}
+            onVersionChange={setVersion}
+            autoExtendCart={autoExtendCart}
+            onCartExtensionToggle={toggleCartExtension}
         />
 
-        <FilterConfiguration
-          brands={formData.brands}
-          size={formData.size}
-          maxPrice={formData.maxPrice}
-          sortMethod={formData.sortMethod}
-          itemsToAdd={formData.itemsToAdd}
-          gender={formData.gender}
-          clothingCategory={formData.clothingCategory}
-          shoesCategory={formData.shoesCategory}
-          accessoriesCategory={formData.accessoriesCategory}
-          equipmentCategory={formData.equipmentCategory}
-          onBrandsChange={(value) => updateField('brands', value)}
-          onSizeChange={(value) => updateField('size', value)}
-          onMaxPriceChange={(value) => updateField('maxPrice', value)}
-          onSortMethodChange={(value) => updateField('sortMethod', value)}
-          onItemsToAddChange={(value) => updateField('itemsToAdd', value)}
-          onGenderChange={handleGenderChange}
-          onClothingCategoryChange={(value) => handleCategoryChange('clothingCategory', value)}
-          onShoesCategoryChange={(value) => handleCategoryChange('shoesCategory', value)}
-          onAccessoriesCategoryChange={(value) => handleCategoryChange('accessoriesCategory', value)}
-          onEquipmentCategoryChange={(value) => handleCategoryChange('equipmentCategory', value)}
-        />
+        <div className="p-4 space-y-4">
+          <CampaignPlanning
+              campaignId={formData.campaignId}
+              executionTime={formData.executionTime}
+              delay={formData.delay}
+              brands={formData.brands}
+              size={formData.size}
+              maxPrice={formData.maxPrice}
+              sortMethod={formData.sortMethod}
+              itemsToAdd={formData.itemsToAdd}
+              gender={formData.gender}
+              clothingCategory={formData.clothingCategory}
+              shoesCategory={formData.shoesCategory}
+              accessoriesCategory={formData.accessoriesCategory}
+              equipmentCategory={formData.equipmentCategory}
+              onCampaignIdChange={(value) => updateField('campaignId', value)}
+              onExecutionTimeChange={(value) => updateField('executionTime', value)}
+              onDelayChange={(value) => updateField('delay', value)}
+              onBrandsChange={(value) => updateField('brands', value)}
+              onSizeChange={(value) => updateField('size', value)}
+              onMaxPriceChange={(value) => updateField('maxPrice', value)}
+              onSortMethodChange={(value) => updateField('sortMethod', value)}
+              onItemsToAddChange={(value) => updateField('itemsToAdd', value)}
+              onGenderChange={handleGenderChange}
+              onClothingCategoryChange={(value) => handleCategoryChange('clothingCategory', value)}
+              onShoesCategoryChange={(value) => handleCategoryChange('shoesCategory', value)}
+              onAccessoriesCategoryChange={(value) => handleCategoryChange('accessoriesCategory', value)}
+              onEquipmentCategoryChange={(value) => handleCategoryChange('equipmentCategory', value)}
+              onScheduleCampaign={handleScheduleCampaign}
+          />
 
-        <ActiveCampaigns
-          campaigns={activeCampaigns}
-          onCancelCampaign={handleCancelCampaign}
-          onClearHistory={handleClearHistory}
-        />
+          <ActiveCampaigns
+              campaigns={activeCampaigns}
+              onCancelCampaign={handleCancelCampaign}
+              onClearHistory={handleClearHistory}
+          />
 
-        <TestZone
-          campaignId={formData.campaignId}
-          onTestClick={handleTestButtonClick}
-          onV2TestClick={handleV2TestButtonClick}
-          onV2WorkflowClick={handleV2WorkflowClick}
-        />
+          <TestZone
+              campaignId={formData.campaignId}
+              onTestClick={handleTestButtonClick}
+              onV2TestClick={handleV2TestButtonClick}
+              onV2WorkflowClick={handleV2WorkflowClick}
+          />
+        </div>
       </div>
-    </div>
   )
 }

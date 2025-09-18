@@ -14,7 +14,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     settings: {
       defaultSortMethod: 'Popularne',
       maxItemsToAdd: 5,
-      debugMode: false
+      debugMode: false,
+      autoExtendCart: false
     }
   })
 })
@@ -26,6 +27,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name.startsWith('campaign_')) {
     const campaignId = alarm.name.replace('campaign_', '')
     await executeCampaign(campaignId)
+  } else if (alarm.name === 'cart_extension') {
+    await extendCartReservation()
   }
 })
 
@@ -66,6 +69,10 @@ async function executeCampaign(campaignId: string) {
 
     if (success) {
       console.log('🎯 V2 campaign execution completed successfully!')
+
+      // Auto-enable cart extension after successful campaign
+      console.log('🛒 Auto-enabling cart extension after successful campaign')
+      await toggleCartExtension(true)
     } else {
       console.error('❌ V2 campaign execution failed after retries')
     }
@@ -109,8 +116,8 @@ async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3)
       if (result.success) {
         console.log(`✅ V2 Workflow Success on attempt ${attempt}!`, result.data)
         await showNotification(
-          'Kampania Zakończona!',
-          `✅ Dodano ${result.data?.successCount || campaign.itemsToAdd} produktów do koszyka`
+            'Kampania Zakończona!',
+            `✅ Dodano ${result.data?.successCount || campaign.itemsToAdd} produktów do koszyka`
         )
         return true
       } else {
@@ -364,6 +371,39 @@ function convertFormToFilters(formData: any): any {
   return filters
 }
 
+// Cart extension function
+async function extendCartReservation(): Promise<void> {
+  try {
+    console.log('🛒 Extending cart reservation...')
+
+    const response = await fetch('https://www.zalando-lounge.pl/api/phoenix/stockcart/cart', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'accept': '*/*',
+        'accept-language': 'pl,en-US;q=0.9,en;q=0.8',
+        'content-type': 'application/json',
+        'content-length': '0',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        'origin': 'https://www.zalando-lounge.pl',
+        'referer': 'https://www.zalando-lounge.pl/event',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'x-requested-with': 'XMLHttpRequest'
+      }
+    })
+
+    if (response.ok) {
+      console.log('✅ Cart reservation extended successfully')
+    } else {
+      console.warn('⚠️ Cart extension failed:', response.status, response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error extending cart:', error)
+  }
+}
+
 // Helper function for notifications
 async function showNotification(title: string, message: string) {
   try {
@@ -396,6 +436,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       cancelCampaign(message.campaignId)
       sendResponse({ success: true })
       break
+    case 'TOGGLE_CART_EXTENSION':
+      toggleCartExtension(message.enabled)
+      sendResponse({ success: true })
+      break
     default:
       console.warn('Unknown message type:', message.type)
   }
@@ -420,3 +464,41 @@ async function cancelCampaign(campaignId: string) {
   await chrome.alarms.clear(alarmName)
   console.log('Campaign cancelled:', alarmName)
 }
+
+// Cart extension control functions
+async function toggleCartExtension(enabled: boolean) {
+  console.log('🛒 Cart extension toggled:', enabled)
+
+  // Update settings in storage
+  const result = await chrome.storage.local.get(['settings'])
+  const settings = result.settings || {}
+  settings.autoExtendCart = enabled
+  await chrome.storage.local.set({ settings })
+
+  if (enabled) {
+    // Start the cart extension alarm (every minute)
+    await chrome.alarms.create('cart_extension', {
+      delayInMinutes: 1,
+      periodInMinutes: 1
+    })
+    console.log('🟢 Cart extension alarm started (every 1 minute)')
+  } else {
+    // Stop the cart extension alarm
+    await chrome.alarms.clear('cart_extension')
+    console.log('🔴 Cart extension alarm stopped')
+  }
+}
+
+// Initialize cart extension on startup
+chrome.runtime.onStartup.addListener(async () => {
+  const result = await chrome.storage.local.get(['settings'])
+  const settings = result.settings || {}
+
+  if (settings.autoExtendCart) {
+    console.log('🔄 Restoring cart extension alarm on startup')
+    await chrome.alarms.create('cart_extension', {
+      delayInMinutes: 1,
+      periodInMinutes: 1
+    })
+  }
+})
