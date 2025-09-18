@@ -10,7 +10,13 @@ interface Campaign {
   }
   sortMethod: string
   itemsToAdd: number
+  // Execution results (populated after campaign runs)
+  success?: boolean
+  addedToCart?: number
+  totalFound?: number
 }
+
+import { getBrandNames } from '../utils/brandMapping'
 
 interface ActiveCampaignsProps {
   campaigns: Campaign[]
@@ -24,9 +30,21 @@ export default function ActiveCampaigns({ campaigns, onCancelCampaign, onClearHi
   const historicalCampaigns = campaigns.filter(c => c.executionTime <= now)
 
   const formatCampaignDetails = (campaign: Campaign) => {
-    const brands = campaign.filters.brands.length > 0 ? campaign.filters.brands.join(', ') : 'Wszystkie'
+    const brands = getBrandNames(campaign.filters.brands)
     const delay = campaign.delay ? `${campaign.delay}ms` : '500ms'
     return `${brands} | ${campaign.filters.size || 'Dowolny'} | ${campaign.filters.color || 'Dowolny'} | ≤${campaign.filters.maxPrice}zł | ${campaign.sortMethod} | ${campaign.itemsToAdd}szt | ${delay}`
+  }
+
+  const formatHistoricalCampaignDetails = (campaign: Campaign) => {
+    const brands = getBrandNames(campaign.filters.brands)
+    const delay = campaign.delay ? `${campaign.delay}ms` : '500ms'
+    const successInfo = campaign.addedToCart !== undefined
+      ? `✅ ${campaign.addedToCart}/${campaign.itemsToAdd} dodano`
+      : campaign.success === false
+        ? '❌ Niepowodzenie'
+        : '⏳ W trakcie'
+
+    return `${brands} | ${campaign.filters.size || 'Dowolny'} | ≤${campaign.filters.maxPrice}zł | ${successInfo} | ${delay}`
   }
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -113,8 +131,8 @@ export default function ActiveCampaigns({ campaigns, onCancelCampaign, onClearHi
                       <p className="text-xs text-gray-500 mb-1">
                         📅 {new Date(campaign.executionTime).toLocaleString('pl-PL')}
                       </p>
-                      <p className="text-xs text-gray-400 truncate" title={formatCampaignDetails(campaign)}>
-                        {formatCampaignDetails(campaign)}
+                      <p className="text-xs text-gray-400 truncate" title={formatHistoricalCampaignDetails(campaign)}>
+                        {formatHistoricalCampaignDetails(campaign)}
                       </p>
                     </div>
                   </div>

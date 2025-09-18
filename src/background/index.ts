@@ -29,6 +29,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await executeCampaign(campaignId)
   } else if (alarm.name === 'cart_extension') {
     await extendCartReservation()
+
+    // Schedule next cart extension with random delay (2-7 minutes)
+    await scheduleNextCartExtension()
   }
 })
 
@@ -65,9 +68,12 @@ async function executeCampaign(campaignId: string) {
     }
 
     // Execute V2 workflow with retry mechanism
-    const success = await executeV2WorkflowWithRetry(campaign, 3)
+    const workflowResult = await executeV2WorkflowWithRetry(campaign, 3)
 
-    if (success) {
+    // Update campaign with execution results
+    await updateCampaignResults(campaign.id, workflowResult)
+
+    if (workflowResult.success) {
       console.log('🎯 V2 campaign execution completed successfully!')
 
       // Auto-enable cart extension after successful campaign
@@ -84,7 +90,7 @@ async function executeCampaign(campaignId: string) {
 }
 
 // V2 Workflow with retry mechanism
-async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3): Promise<boolean> {
+async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3): Promise<{success: boolean, data?: any}> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     console.log(`🔄 V2 Workflow attempt ${attempt}/${maxRetries}`)
 
@@ -119,7 +125,7 @@ async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3)
             'Kampania Zakończona!',
             `✅ Dodano ${result.data?.successCount || campaign.itemsToAdd} produktów do koszyka`
         )
-        return true
+        return { success: true, data: result.data }
       } else {
         console.error(`❌ V2 Workflow Failed on attempt ${attempt}:`, result.error)
 
@@ -147,7 +153,7 @@ async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3)
     }
   }
 
-  return false
+  return { success: false }
 }
 
 // Direct V2 API workflow execution
@@ -465,6 +471,32 @@ async function cancelCampaign(campaignId: string) {
   console.log('Campaign cancelled:', alarmName)
 }
 
+// Update campaign with execution results
+async function updateCampaignResults(campaignId: string, result: {success: boolean, data?: any}) {
+  try {
+    const storage = await chrome.storage.local.get(['campaigns'])
+    const campaigns = storage.campaigns || []
+
+    const campaignIndex = campaigns.findIndex((c: any) => c.id === campaignId)
+    if (campaignIndex !== -1) {
+      campaigns[campaignIndex].success = result.success
+      if (result.data) {
+        campaigns[campaignIndex].addedToCart = result.data.successCount || 0
+        campaigns[campaignIndex].totalFound = result.data.totalProducts || 0
+      }
+
+      await chrome.storage.local.set({ campaigns })
+      console.log(`📊 Updated campaign ${campaignId} results:`, {
+        success: result.success,
+        addedToCart: campaigns[campaignIndex].addedToCart,
+        totalFound: campaigns[campaignIndex].totalFound
+      })
+    }
+  } catch (error) {
+    console.error('❌ Failed to update campaign results:', error)
+  }
+}
+
 // Cart extension control functions
 async function toggleCartExtension(enabled: boolean) {
   console.log('🛒 Cart extension toggled:', enabled)
@@ -476,12 +508,9 @@ async function toggleCartExtension(enabled: boolean) {
   await chrome.storage.local.set({ settings })
 
   if (enabled) {
-    // Start the cart extension alarm (every minute)
-    await chrome.alarms.create('cart_extension', {
-      delayInMinutes: 1,
-      periodInMinutes: 1
-    })
-    console.log('🟢 Cart extension alarm started (every 1 minute)')
+    // Start the cart extension alarm with random delay (2-7 minutes)
+    await scheduleNextCartExtension()
+    console.log('🟢 Cart extension alarm started (random 2-7 minute intervals)')
   } else {
     // Stop the cart extension alarm
     await chrome.alarms.clear('cart_extension')
@@ -496,9 +525,22 @@ chrome.runtime.onStartup.addListener(async () => {
 
   if (settings.autoExtendCart) {
     console.log('🔄 Restoring cart extension alarm on startup')
-    await chrome.alarms.create('cart_extension', {
-      delayInMinutes: 1,
-      periodInMinutes: 1
-    })
+    await scheduleNextCartExtension()
   }
 })
+
+// Helper functions for random cart extension timing
+function getRandomDelayMinutes(): number {
+  // Random delay between 2-7 minutes
+  return Math.floor(Math.random() * 6) + 2 // 2 + (0-5) = 2-7 minutes
+}
+
+async function scheduleNextCartExtension(): Promise<void> {
+  const delayMinutes = getRandomDelayMinutes()
+
+  await chrome.alarms.create('cart_extension', {
+    delayInMinutes: delayMinutes
+  })
+
+  console.log(`⏰ Next cart extension scheduled in ${delayMinutes} minutes`)
+}

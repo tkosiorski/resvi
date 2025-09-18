@@ -16,54 +16,55 @@ export default function Header({ version, onVersionChange, autoExtendCart, onCar
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Resvi</h1>
-                <p className="text-sm text-gray-600">Automatyzacja Zalando Lounge</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {/* Cart Extension Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Auto-przedłużanie koszyka:</span>
-                <button
-                    onClick={() => onCartExtensionToggle(!autoExtendCart)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        autoExtendCart ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                >
-                <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        autoExtendCart ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                />
-                </button>
-                <span className={`text-xs font-medium ${autoExtendCart ? 'text-green-600' : 'text-gray-500'}`}>
-                {autoExtendCart ? 'ON' : 'OFF'}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600 whitespace-nowrap">Auto-przedłużanie koszyka:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                      onClick={() => onCartExtensionToggle(!autoExtendCart)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
+                          autoExtendCart ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
+                  >
+                    <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            autoExtendCart ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                    />
+                  </button>
+                  <span className={`text-xs font-semibold min-w-[24px] text-center ${autoExtendCart ? 'text-green-600' : 'text-gray-500'}`}>
+                    {autoExtendCart ? 'ON' : 'OFF'}
+                  </span>
+                </div>
               </div>
 
               {/* Version Switch */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Wersja:</span>
-                <div className="bg-gray-100 rounded-lg p-1 flex">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600 whitespace-nowrap">Wersja:</span>
+                <div className="bg-gray-100 rounded-lg p-1 flex gap-0">
                   <button
                       onClick={() => onVersionChange('v1')}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                           version === 'v1'
                               ? 'bg-blue-500 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-800'
+                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                       }`}
                   >
-                    v1 (Kliknięcia)
+                    v1<br/>
                   </button>
                   <button
                       onClick={() => onVersionChange('v2')}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                           version === 'v2'
                               ? 'bg-blue-500 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-800'
+                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                       }`}
                   >
-                    v2 (API)
+                    v2<br/>
                   </button>
                 </div>
               </div>
