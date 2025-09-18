@@ -1,16 +1,20 @@
 interface CampaignSchedulingProps {
   campaignId: string
   executionTime: string
+  delay: number
   onCampaignIdChange: (value: string) => void
   onExecutionTimeChange: (value: string) => void
+  onDelayChange: (value: number) => void
   onScheduleCampaign: () => Promise<void>
 }
 
 export default function CampaignScheduling({
   campaignId,
   executionTime,
+  delay,
   onCampaignIdChange,
   onExecutionTimeChange,
+  onDelayChange,
   onScheduleCampaign
 }: CampaignSchedulingProps) {
   return (
@@ -24,28 +28,46 @@ export default function CampaignScheduling({
       </div>
       <div className="p-4">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ID Kampanii
-            </label>
-            <input
-              type="text"
-              value={campaignId}
-              onChange={(e) => onCampaignIdChange(e.target.value)}
-              placeholder="np. ZZO3RYK"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Czas Wykonania
-            </label>
-            <input
-              type="datetime-local"
-              value={executionTime}
-              onChange={(e) => onExecutionTimeChange(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ID Kampanii
+              </label>
+              <input
+                type="text"
+                value={campaignId}
+                onChange={(e) => onCampaignIdChange(e.target.value)}
+                placeholder="np. ZZO3RYK"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Czas Wykonania
+              </label>
+              <input
+                type="datetime-local"
+                value={executionTime}
+                onChange={(e) => onExecutionTimeChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Opóźnienie (ms)
+              </label>
+              <input
+                type="number"
+                value={delay}
+                onChange={(e) => onDelayChange(parseInt(e.target.value) || 500)}
+                min="0"
+                max="10000"
+                step="100"
+                placeholder="500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">Domyślnie 500ms</p>
+            </div>
           </div>
           <button
             onClick={onScheduleCampaign}

@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface FormData {
   campaignId: string
-  brand: string
+  brands: string[]
   size: string
   color: string
   maxPrice: number
   sortMethod: string
   itemsToAdd: number
   executionTime: string
+  delay: number // Delay in milliseconds before execution
   gender: string
   clothingCategory: string
   shoesCategory: string
@@ -18,13 +19,14 @@ interface FormData {
 
 const defaultFormData: FormData = {
   campaignId: '',
-  brand: '',
+  brands: [],
   size: '46',
   color: '',
   maxPrice: 300,
   sortMethod: 'Popularne',
   itemsToAdd: 5,
   executionTime: '',
+  delay: 500, // Default 500ms delay
   gender: '',
   clothingCategory: '',
   shoesCategory: '',
@@ -56,7 +58,7 @@ export function useFormData() {
       if (savedData) {
         console.log('📝 Setting form values:', {
           campaignId: savedData.campaignId,
-          brand: savedData.brand,
+          brands: savedData.brands || savedData.brand ? [savedData.brand] : [],
           size: savedData.size,
           color: savedData.color,
           maxPrice: savedData.maxPrice,
@@ -64,14 +66,15 @@ export function useFormData() {
           itemsToAdd: savedData.itemsToAdd
         })
 
-        console.log(`🔍 BRAND FIELD DEBUG:`)
-        console.log(`  Raw storage value: "${savedData.brand}"`)
-        console.log(`  String length: ${(savedData.brand || '').length}`)
-        console.log(`  Character codes:`, [...(savedData.brand || '')].map(c => `${c}(${c.charCodeAt(0)})`))
+        // Migration: convert old brand string to brands array
+        let brands = savedData.brands || []
+        if (!brands.length && savedData.brand) {
+          brands = [savedData.brand]
+        }
 
         setFormData({
           campaignId: savedData.campaignId ?? '',
-          brand: savedData.brand ?? '',
+          brands: brands,
           size: savedData.size ?? '46',
           color: savedData.color ?? '',
           maxPrice: savedData.maxPrice ?? 300,

@@ -1,5 +1,7 @@
+import MultiSelectBrands from './MultiSelectBrands'
+
 interface FilterConfigurationProps {
-  brand: string
+  brands: string[]
   size: string
   maxPrice: number
   sortMethod: string
@@ -9,7 +11,7 @@ interface FilterConfigurationProps {
   shoesCategory: string
   accessoriesCategory: string
   equipmentCategory: string
-  onBrandChange: (value: string) => void
+  onBrandsChange: (value: string[]) => void
   onSizeChange: (value: string) => void
   onMaxPriceChange: (value: number) => void
   onSortMethodChange: (value: string) => void
@@ -22,7 +24,7 @@ interface FilterConfigurationProps {
 }
 
 export default function FilterConfiguration({
-  brand,
+  brands,
   size,
   maxPrice,
   sortMethod,
@@ -32,7 +34,7 @@ export default function FilterConfiguration({
   shoesCategory,
   accessoriesCategory,
   equipmentCategory,
-  onBrandChange,
+  onBrandsChange,
   onSizeChange,
   onMaxPriceChange,
   onSortMethodChange,
@@ -59,19 +61,11 @@ export default function FilterConfiguration({
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
             Podstawowe
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Marka
-              </label>
-              <input
-                type="text"
-                value={brand}
-                onChange={(e) => onBrandChange(e.target.value)}
-                placeholder="np. adidas, nike"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4">
+            <MultiSelectBrands
+              selectedBrands={brands}
+              onBrandsChange={onBrandsChange}
+            />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Rozmiar
@@ -117,23 +111,19 @@ export default function FilterConfiguration({
                 <select
                   value={clothingCategory}
                   onChange={(e) => onClothingCategoryChange(e.target.value)}
-                  disabled={!gender || shoesCategory || accessoriesCategory || equipmentCategory}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || shoesCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  disabled={!!(shoesCategory || accessoriesCategory || equipmentCategory)}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(shoesCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">{!gender ? 'Wybierz płeć' : (shoesCategory || accessoriesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
-                  {gender && (
-                    <>
-                      <option value="Wszystkie w kategorii Odzież">Wszystkie w kategorii Odzież</option>
-                      <option value="T-shirty i koszulki polo">T-shirty i koszulki polo</option>
-                      <option value="Swetry i bluzy">Swetry i bluzy</option>
-                      <option value="Kurtki i płaszcze">Kurtki i płaszcze</option>
-                      <option value="Spodnie">Spodnie</option>
-                      <option value="Dresy">Dresy</option>
-                      <option value="Koszulki klubowe i akcesoria dla kibiców">Koszulki klubowe</option>
-                      <option value="Bielizna">Bielizna</option>
-                      <option value="Skarpetki">Skarpetki</option>
-                    </>
-                  )}
+                  <option value="">{(shoesCategory || accessoriesCategory || equipmentCategory) ? 'Zablokowane' : 'Wszystkie'}</option>
+                  <option value="Wszystkie w kategorii Odzież">Wszystkie w kategorii Odzież</option>
+                  <option value="T-shirty i koszulki polo">T-shirty i koszulki polo</option>
+                  <option value="Swetry i bluzy">Swetry i bluzy</option>
+                  <option value="Kurtki i płaszcze">Kurtki i płaszcze</option>
+                  <option value="Spodnie">Spodnie</option>
+                  <option value="Dresy">Dresy</option>
+                  <option value="Koszulki klubowe i akcesoria dla kibiców">Koszulki klubowe</option>
+                  <option value="Bielizna">Bielizna</option>
+                  <option value="Skarpetki">Skarpetki</option>
                 </select>
               </div>
               <div>
@@ -143,16 +133,12 @@ export default function FilterConfiguration({
                 <select
                   value={shoesCategory}
                   onChange={(e) => onShoesCategoryChange(e.target.value)}
-                  disabled={!gender || clothingCategory || accessoriesCategory || equipmentCategory}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  disabled={!!(clothingCategory || accessoriesCategory || equipmentCategory)}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(clothingCategory || accessoriesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || accessoriesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
-                  {gender && (
-                    <>
-                      <option value="Wszystkie w kategorii Buty">Wszystkie w kategorii Buty</option>
-                      <option value="Buty sportowe">Buty sportowe</option>
-                    </>
-                  )}
+                  <option value="">{(clothingCategory || accessoriesCategory || equipmentCategory) ? 'Zablokowane' : 'Wszystkie'}</option>
+                  <option value="Wszystkie w kategorii Buty">Wszystkie w kategorii Buty</option>
+                  <option value="Buty sportowe">Buty sportowe</option>
                 </select>
               </div>
             </div>
@@ -165,18 +151,14 @@ export default function FilterConfiguration({
                 <select
                   value={accessoriesCategory}
                   onChange={(e) => onAccessoriesCategoryChange(e.target.value)}
-                  disabled={!gender || clothingCategory || shoesCategory || equipmentCategory}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  disabled={!!(clothingCategory || shoesCategory || equipmentCategory)}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(clothingCategory || shoesCategory || equipmentCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || shoesCategory || equipmentCategory ? 'Zablokowane' : 'Wszystkie')}</option>
-                  {gender && (
-                    <>
-                      <option value="Wszystkie w kategorii Akcesoria">Wszystkie w kategorii Akcesoria</option>
-                      <option value="Torby i walizki">Torby i walizki</option>
-                      <option value="Zegarki">Zegarki</option>
-                      <option value="Czapki i kapelusze">Czapki i kapelusze</option>
-                    </>
-                  )}
+                  <option value="">{(clothingCategory || shoesCategory || equipmentCategory) ? 'Zablokowane' : 'Wszystkie'}</option>
+                  <option value="Wszystkie w kategorii Akcesoria">Wszystkie w kategorii Akcesoria</option>
+                  <option value="Torby i walizki">Torby i walizki</option>
+                  <option value="Zegarki">Zegarki</option>
+                  <option value="Czapki i kapelusze">Czapki i kapelusze</option>
                 </select>
               </div>
               <div>
@@ -186,17 +168,13 @@ export default function FilterConfiguration({
                 <select
                   value={equipmentCategory}
                   onChange={(e) => onEquipmentCategoryChange(e.target.value)}
-                  disabled={!gender || clothingCategory || shoesCategory || accessoriesCategory}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(!gender || clothingCategory || shoesCategory || accessoriesCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  disabled={!!(clothingCategory || shoesCategory || accessoriesCategory)}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${(clothingCategory || shoesCategory || accessoriesCategory) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">{!gender ? 'Wybierz płeć' : (clothingCategory || shoesCategory || accessoriesCategory ? 'Zablokowane' : 'Wszystkie')}</option>
-                  {gender && (
-                    <>
-                      <option value="Wszystkie w kategorii Sprzęt">Wszystkie w kategorii Sprzęt</option>
-                      <option value="Piłki i rakiety">Piłki i rakiety</option>
-                      <option value="Zegarki sportowe i elektronika">Zegarki sportowe</option>
-                    </>
-                  )}
+                  <option value="">{(clothingCategory || shoesCategory || accessoriesCategory) ? 'Zablokowane' : 'Wszystkie'}</option>
+                  <option value="Wszystkie w kategorii Sprzęt">Wszystkie w kategorii Sprzęt</option>
+                  <option value="Piłki i rakiety">Piłki i rakiety</option>
+                  <option value="Zegarki sportowe i elektronika">Zegarki sportowe</option>
                 </select>
               </div>
             </div>
@@ -234,7 +212,7 @@ export default function FilterConfiguration({
                 value={itemsToAdd}
                 onChange={(e) => onItemsToAddChange(parseInt(e.target.value))}
                 min="1"
-                max="10"
+                max="20"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>

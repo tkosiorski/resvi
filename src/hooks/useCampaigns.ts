@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 interface Campaign {
   id: string
   executionTime: number
+  delay?: number // Delay in milliseconds before execution (default: 500ms)
   filters: {
-    brand: string
+    brands: string[]
     size: string
     color: string
     maxPrice: number
@@ -68,10 +69,26 @@ export function useCampaigns() {
     }
   }
 
+  const clearHistory = async () => {
+    try {
+      const result = await chrome.storage.local.get(['campaigns'])
+      const now = Date.now()
+      const futureCampaigns = result.campaigns?.filter((c: Campaign) => c.executionTime > now) || []
+      await chrome.storage.local.set({ campaigns: futureCampaigns })
+
+      loadActiveCampaigns()
+      return true
+    } catch (error) {
+      console.error('Failed to clear campaign history:', error)
+      return false
+    }
+  }
+
   return {
     activeCampaigns,
     scheduleCampaign,
     cancelCampaign,
+    clearHistory,
     loadActiveCampaigns
   }
 }
