@@ -56,3 +56,47 @@ export interface Brand {
   code: string
   name: string
 }
+
+// Service types
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: string
+}
+
+export interface ProductSearchFilters {
+  brandCodes?: string
+  categoryIds?: string
+  gender?: string
+  shoeSizes?: string
+  clothingSizes?: string
+  priceMax?: string
+  sort?: string
+}
+
+export interface Product {
+  sku?: string
+  id?: string
+  simple_key?: string
+  simples?: ProductVariant[]
+}
+
+export interface ProductVariant {
+  sku: string
+  stockStatus: string
+}
+
+export interface CartAddResult {
+  successCount: number
+  failedCount: number
+}
+
+export interface CampaignExecutionResult {
+  success: boolean
+  data?: {
+    totalProducts: number
+    successCount: number
+    failedCount: number
+  }
+  error?: string
+}
