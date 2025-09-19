@@ -1,10 +1,10 @@
 import Header from '../../components/Header'
 import CampaignPlanning from '../../components/CampaignPlanning'
 import ActiveCampaigns from '../../components/ActiveCampaigns'
-import { useFormData } from '@/hooks/useFormData.ts'
-import { useCampaigns } from '@/hooks/useCampaigns.ts'
-import { useCartExtension } from '@/hooks/useCartExtension.ts'
-import { isValidCampaignId, isValidExecutionTime } from '@/shared/utils/formatters.ts'
+import { useFormData } from '@/hooks/useFormData'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useCartExtension } from '@/hooks/useCartExtension'
+import { isValidCampaignId, isValidExecutionTime } from '@/shared/utils/formatters'
 import type { Campaign, FormData } from '@/shared/types'
 
 export default function Popup() {

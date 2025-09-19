@@ -587,14 +587,10 @@ export const BRAND_CODE_TO_NAME: Record<string, string> = {
   "ZW4": "Zwillingsherz"
 }
 
-export function getBrandName(brandCode: string): string {
-  return BRAND_CODE_TO_NAME[brandCode] || brandCode
-}
-
 export function getBrandNames(brandCodes: string[]): string {
   if (brandCodes.length === 0) {return 'Wszystkie marki'}
 
-  const names = brandCodes.map(code => getBrandName(code))
+  const names = brandCodes.map(code => BRAND_CODE_TO_NAME[code] || code)
   if (names.length === 1) {return names[0]}
   if (names.length <= 3) {return names.join(', ')}
 
@@ -606,12 +602,8 @@ const NAME_TO_CODE_MAP = Object.fromEntries(
   Object.entries(BRAND_CODE_TO_NAME).map(([code, name]) => [name.toLowerCase(), code])
 )
 
-export function getBrandCode(brandName: string): string | undefined {
-  return NAME_TO_CODE_MAP[brandName.toLowerCase()]
-}
-
 export function getBrandCodes(brandNames: string[]): string[] {
   return brandNames
-    .map(name => getBrandCode(name.trim()))
+    .map(name => NAME_TO_CODE_MAP[name.trim().toLowerCase()])
     .filter((code): code is string => code !== undefined)
 }
