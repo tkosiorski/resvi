@@ -3,7 +3,6 @@ import MultiSelectBrands from './MultiSelectBrands'
 interface FilterConfigurationProps {
   brands: string[]
   size: string
-  maxPrice: number
   sortMethod: string
   itemsToAdd: number
   gender: string
@@ -13,7 +12,6 @@ interface FilterConfigurationProps {
   equipmentCategory: string
   onBrandsChange: (value: string[]) => void
   onSizeChange: (value: string) => void
-  onMaxPriceChange: (value: number) => void
   onSortMethodChange: (value: string) => void
   onItemsToAddChange: (value: number) => void
   onGenderChange: (value: string) => void
@@ -26,7 +24,6 @@ interface FilterConfigurationProps {
 export default function FilterConfiguration({
   brands,
   size,
-  maxPrice,
   sortMethod,
   itemsToAdd,
   gender,
@@ -36,7 +33,6 @@ export default function FilterConfiguration({
   equipmentCategory,
   onBrandsChange,
   onSizeChange,
-  onMaxPriceChange,
   onSortMethodChange,
   onItemsToAddChange,
   onGenderChange,

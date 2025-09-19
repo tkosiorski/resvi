@@ -1,8 +1,6 @@
 // Background service worker for Resvi Chrome extension
 console.log('Resvi background service worker started')
 
-// Import ZalandoApiService for V2 automation
-import { ZalandoApiService } from '../services/ZalandoApiService'
 
 // Extension installation and startup
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -122,7 +120,7 @@ async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3)
       console.log('🔧 API filters:', filters)
 
       // Execute the V2 API calls directly
-      const result = await executeV2ApiWorkflow(campaign.id, filters, campaign.filters.size, campaign.itemsToAdd)
+      const result = await executeV2ApiWorkflow(campaign.id, filters, campaign.itemsToAdd)
 
       if (result.success) {
         console.log(`✅ V2 Workflow Success on attempt ${attempt}!`, result.data)
@@ -162,7 +160,7 @@ async function executeV2WorkflowWithRetry(campaign: any, maxRetries: number = 3)
 }
 
 // Direct V2 API workflow execution
-async function executeV2ApiWorkflow(campaignId: string, filters: any, size: string, itemsToAdd: number): Promise<any> {
+async function executeV2ApiWorkflow(campaignId: string, filters: any, itemsToAdd: number): Promise<any> {
   const baseUrl = 'https://www.zalando-lounge.pl/api/phoenix'
 
   try {
@@ -432,6 +430,7 @@ async function showNotification(title: string, message: string) {
     if (chrome.notifications) {
       await chrome.notifications.create({
         type: 'basic',
+        iconUrl: 'icons/icon48.png',
         title: title,
         message: message
       })

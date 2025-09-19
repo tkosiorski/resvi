@@ -6,7 +6,6 @@ interface CampaignPlanningProps {
   delay: number
   brands: string[]
   size: string
-  maxPrice: number
   sortMethod: string
   itemsToAdd: number
   gender: string
@@ -19,7 +18,6 @@ interface CampaignPlanningProps {
   onDelayChange: (value: number) => void
   onBrandsChange: (value: string[]) => void
   onSizeChange: (value: string) => void
-  onMaxPriceChange: (value: number) => void
   onSortMethodChange: (value: string) => void
   onItemsToAddChange: (value: number) => void
   onGenderChange: (value: string) => void
@@ -36,7 +34,6 @@ export default function CampaignPlanning({
   delay,
   brands,
   size,
-  maxPrice,
   sortMethod,
   itemsToAdd,
   gender,
@@ -49,7 +46,6 @@ export default function CampaignPlanning({
   onDelayChange,
   onBrandsChange,
   onSizeChange,
-  onMaxPriceChange,
   onSortMethodChange,
   onItemsToAddChange,
   onGenderChange,
@@ -140,20 +136,6 @@ export default function CampaignPlanning({
                 placeholder="46 lub 46,47,48"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maksymalna Cena (zł)
-              </label>
-              <input
-                type="number"
-                value={maxPrice || ''}
-                onChange={(e) => onMaxPriceChange(parseInt(e.target.value) || 0)}
-                min="0"
-                placeholder="0"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <p className="text-xs text-gray-500 mt-1">0 = bez limitu</p>
             </div>
           </div>
         </div>

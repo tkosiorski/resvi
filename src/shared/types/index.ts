@@ -80,8 +80,6 @@ export interface ZalandoApiResponse {
 
 // Component props types
 export interface HeaderProps {
-  version: 'v1' | 'v2'
-  onVersionChange: (version: 'v1' | 'v2') => void
   autoExtendCart: boolean
   onCartExtensionToggle: (enabled: boolean) => void
 }
@@ -112,28 +110,6 @@ export interface Brand {
   name: string
 }
 
-// Filter configuration types
-export interface FilterConfig {
-  brands?: string[]
-  brand?: string[] // Legacy compatibility
-  size?: string[]
-  color?: string
-  maxPrice?: number
-  sortMethod?: string
-  itemsToAdd?: number
-  gender?: string
-  clothingCategory?: string
-  shoesCategory?: string
-  accessoriesCategory?: string
-  equipmentCategory?: string
-  category?: {
-    gender?: string
-    clothingCategory?: string
-    shoesCategory?: string
-    accessoriesCategory?: string
-    equipmentCategory?: string
-  }
-}
 
 // Service response types
 export interface ServiceResponse<T = any> {

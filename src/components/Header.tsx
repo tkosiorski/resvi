@@ -1,6 +1,6 @@
 import type { HeaderProps } from '../shared/types'
 
-export default function Header({ version, onVersionChange, autoExtendCart, onCartExtensionToggle }: HeaderProps) {
+export default function Header({ autoExtendCart, onCartExtensionToggle }: HeaderProps) {
   return (
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="p-4">
@@ -11,6 +11,7 @@ export default function Header({ version, onVersionChange, autoExtendCart, onCar
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Resvi</h1>
+                <p className="text-sm text-gray-500">API Automation</p>
               </div>
             </div>
 
@@ -34,33 +35,6 @@ export default function Header({ version, onVersionChange, autoExtendCart, onCar
                   <span className={`text-xs font-semibold min-w-[24px] text-center ${autoExtendCart ? 'text-green-600' : 'text-gray-500'}`}>
                     {autoExtendCart ? 'ON' : 'OFF'}
                   </span>
-                </div>
-              </div>
-
-              {/* Version Switch */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 whitespace-nowrap">Wersja:</span>
-                <div className="bg-gray-100 rounded-lg p-1 flex gap-0">
-                  <button
-                      onClick={() => onVersionChange('v1')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                          version === 'v1'
-                              ? 'bg-blue-500 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                  >
-                    v1<br/>
-                  </button>
-                  <button
-                      onClick={() => onVersionChange('v2')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                          version === 'v2'
-                              ? 'bg-blue-500 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                  >
-                    v2<br/>
-                  </button>
                 </div>
               </div>
             </div>

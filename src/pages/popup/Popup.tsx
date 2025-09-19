@@ -5,14 +5,12 @@ import { useFormData } from '../../hooks/useFormData'
 import { useCampaigns } from '../../hooks/useCampaigns'
 import { useCartExtension } from '../../hooks/useCartExtension'
 import { isValidCampaignId, isValidExecutionTime } from '../../shared/utils/formatters'
-import { useState } from 'react'
-import type { Campaign } from '../../shared/types'
+import type { Campaign, FormData } from '../../shared/types'
 
 export default function Popup() {
   const { formData, updateField, resetCategoryFields } = useFormData()
   const { activeCampaigns, scheduleCampaign, cancelCampaign, clearHistory } = useCampaigns()
   const { autoExtendCart, toggleCartExtension } = useCartExtension()
-  const [version, setVersion] = useState<'v1' | 'v2'>('v2')
 
   const handleScheduleCampaign = async () => {
     if (!isValidCampaignId(formData.campaignId) || !isValidExecutionTime(formData.executionTime)) {
@@ -74,11 +72,11 @@ export default function Popup() {
     resetCategoryFields()
   }
 
-  const handleCategoryChange = (field: string, value: string) => {
+  const handleCategoryChange = (field: keyof FormData, value: string) => {
     updateField(field, value)
 
     if (value) {
-      const otherCategories = ['clothingCategory', 'shoesCategory', 'accessoriesCategory', 'equipmentCategory']
+      const otherCategories: (keyof FormData)[] = ['clothingCategory', 'shoesCategory', 'accessoriesCategory', 'equipmentCategory']
       otherCategories
           .filter(cat => cat !== field)
           .forEach(cat => updateField(cat, ''))
@@ -88,8 +86,6 @@ export default function Popup() {
   return (
       <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
         <Header
-            version={version}
-            onVersionChange={setVersion}
             autoExtendCart={autoExtendCart}
             onCartExtensionToggle={toggleCartExtension}
         />
@@ -101,7 +97,6 @@ export default function Popup() {
               delay={formData.delay}
               brands={formData.brands}
               size={formData.size}
-              maxPrice={formData.maxPrice}
               sortMethod={formData.sortMethod}
               itemsToAdd={formData.itemsToAdd}
               gender={formData.gender}
@@ -114,7 +109,6 @@ export default function Popup() {
               onDelayChange={(value) => updateField('delay', value)}
               onBrandsChange={(value) => updateField('brands', value)}
               onSizeChange={(value) => updateField('size', value)}
-              onMaxPriceChange={(value) => updateField('maxPrice', value)}
               onSortMethodChange={(value) => updateField('sortMethod', value)}
               onItemsToAddChange={(value) => updateField('itemsToAdd', value)}
               onGenderChange={handleGenderChange}

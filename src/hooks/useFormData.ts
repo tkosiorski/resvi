@@ -65,6 +65,7 @@ export function useFormData() {
           sortMethod: savedData.sortMethod ?? 'Popularne',
           itemsToAdd: savedData.itemsToAdd ?? 5,
           executionTime: savedData.executionTime ?? '',
+          delay: savedData.delay ?? 500,
           gender: savedData.gender ?? '',
           clothingCategory: savedData.clothingCategory ?? '',
           shoesCategory: savedData.shoesCategory ?? '',
