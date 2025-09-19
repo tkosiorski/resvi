@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { FormData } from '../shared/types'
+import type { FormData } from '@/shared/types'
 
 const defaultFormData: FormData = {
   campaignId: '',

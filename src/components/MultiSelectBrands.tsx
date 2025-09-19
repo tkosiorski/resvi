@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import brandCodesData from '../../capture1/brand-codes-2025-09-18T10-23-29-099Z.json'
-import type { Brand, MultiSelectBrandsProps } from '../shared/types'
+import { BRAND_CODE_TO_NAME } from '@/shared/utils/brandMapping'
+import type { Brand, MultiSelectBrandsProps } from '@/shared/types'
 
 export default function MultiSelectBrands({ selectedBrands, onBrandsChange }: MultiSelectBrandsProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -9,8 +9,8 @@ export default function MultiSelectBrands({ selectedBrands, onBrandsChange }: Mu
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Convert brand codes data to array of Brand objects
-  const allBrands: Brand[] = Object.entries(brandCodesData.brandCodes).map(([name, code]) => ({
-    code: code as string,
+  const allBrands: Brand[] = Object.entries(BRAND_CODE_TO_NAME).map(([code, name]) => ({
+    code,
     name
   })).sort((a, b) => a.name.localeCompare(b.name))
 

@@ -168,12 +168,12 @@ async function executeV2ApiWorkflow(campaignId: string, filters: any, itemsToAdd
     const params = new URLSearchParams()
 
     // Add filters
-    if (filters.brand_codes) params.append('brand_codes', filters.brand_codes)
-    if (filters.category_ids) params.append('category_ids', filters.category_ids)
-    if (filters.gender) params.append('gender', filters.gender)
-    if (filters['sizes.shoes']) params.append('sizes.shoes', filters['sizes.shoes'])
-    if (filters['sizes.clothing']) params.append('sizes.clothing', filters['sizes.clothing'])
-    if (filters.price_max) params.append('price_max', filters.price_max)
+    if (filters.brand_codes) {params.append('brand_codes', filters.brand_codes)}
+    if (filters.category_ids) {params.append('category_ids', filters.category_ids)}
+    if (filters.gender) {params.append('gender', filters.gender)}
+    if (filters['sizes.shoes']) {params.append('sizes.shoes', filters['sizes.shoes'])}
+    if (filters['sizes.clothing']) {params.append('sizes.clothing', filters['sizes.clothing'])}
+    if (filters.price_max) {params.append('price_max', filters.price_max)}
 
     // Standard parameters
     params.append('size', '60')

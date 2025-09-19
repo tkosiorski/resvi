@@ -1,5 +1,5 @@
 import { getBrandNames } from '../shared/utils/brandMapping'
-import type { Campaign, ActiveCampaignsProps } from '../shared/types'
+import type { Campaign, ActiveCampaignsProps } from '@/shared/types'
 
 export default function ActiveCampaigns({ campaigns, onCancelCampaign, onClearHistory }: ActiveCampaignsProps) {
   const now = Date.now()

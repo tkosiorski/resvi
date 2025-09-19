@@ -592,11 +592,26 @@ export function getBrandName(brandCode: string): string {
 }
 
 export function getBrandNames(brandCodes: string[]): string {
-  if (brandCodes.length === 0) return 'Wszystkie marki'
+  if (brandCodes.length === 0) {return 'Wszystkie marki'}
 
   const names = brandCodes.map(code => getBrandName(code))
-  if (names.length === 1) return names[0]
-  if (names.length <= 3) return names.join(', ')
+  if (names.length === 1) {return names[0]}
+  if (names.length <= 3) {return names.join(', ')}
 
   return `${names.slice(0, 2).join(', ')} +${names.length - 2} więcej`
+}
+
+// Reverse mapping: from brand name to code
+const NAME_TO_CODE_MAP = Object.fromEntries(
+  Object.entries(BRAND_CODE_TO_NAME).map(([code, name]) => [name.toLowerCase(), code])
+)
+
+export function getBrandCode(brandName: string): string | undefined {
+  return NAME_TO_CODE_MAP[brandName.toLowerCase()]
+}
+
+export function getBrandCodes(brandNames: string[]): string[] {
+  return brandNames
+    .map(name => getBrandCode(name.trim()))
+    .filter((code): code is string => code !== undefined)
 }

@@ -77,9 +77,9 @@ export class DebugLogger {
   }
 
   private getSource(): string {
-    if (window.location.href.includes('popup')) return 'POPUP'
-    if (window.location.href.includes('zalando-lounge.pl')) return 'CONTENT_SCRIPT'
-    if (typeof chrome !== 'undefined' && chrome.runtime) return 'BACKGROUND'
+    if (window.location.href.includes('popup')) {return 'POPUP'}
+    if (window.location.href.includes('zalando-lounge.pl')) {return 'CONTENT_SCRIPT'}
+    if (typeof chrome !== 'undefined' && chrome.runtime) {return 'BACKGROUND'}
     return 'UNKNOWN'
   }
 

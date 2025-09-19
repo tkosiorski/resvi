@@ -1,4 +1,5 @@
 import type { ZalandoFilters, ZalandoApiResponse } from '../shared/types'
+import { getBrandCodes } from '../shared/utils/brandMapping'
 
 export class ZalandoApiService {
   private static instance: ZalandoApiService
@@ -82,37 +83,37 @@ export class ZalandoApiService {
       const params = new URLSearchParams()
 
       // Brand filtering
-      if (filters.brand_codes) params.append('brand_codes', filters.brand_codes)
+      if (filters.brand_codes) {params.append('brand_codes', filters.brand_codes)}
 
       // Size filtering (based on product type)
-      if (filters['sizes.shoes']) params.append('sizes.shoes', filters['sizes.shoes'])
-      if (filters['sizes.clothing']) params.append('sizes.clothing', filters['sizes.clothing'])
-      if (filters.size_values) params.append('size_values', filters.size_values)
+      if (filters['sizes.shoes']) {params.append('sizes.shoes', filters['sizes.shoes'])}
+      if (filters['sizes.clothing']) {params.append('sizes.clothing', filters['sizes.clothing'])}
+      if (filters.size_values) {params.append('size_values', filters.size_values)}
 
       // Category filtering
-      if (filters.category_ids) params.append('category_ids', filters.category_ids)
-      if (filters.category_codes) params.append('category_codes', filters.category_codes)
+      if (filters.category_ids) {params.append('category_ids', filters.category_ids)}
+      if (filters.category_codes) {params.append('category_codes', filters.category_codes)}
 
       // Gender filtering
-      if (filters.gender) params.append('gender', filters.gender)
+      if (filters.gender) {params.append('gender', filters.gender)}
 
       // Color filtering
-      if (filters.color_ids) params.append('color_ids', filters.color_ids)
+      if (filters.color_ids) {params.append('color_ids', filters.color_ids)}
 
       // Price filtering
-      if (filters.price_min) params.append('price_min', filters.price_min)
-      if (filters.price_max) params.append('price_max', filters.price_max)
+      if (filters.price_min) {params.append('price_min', filters.price_min)}
+      if (filters.price_max) {params.append('price_max', filters.price_max)}
 
       // Material filtering
-      if (filters.material_ids) params.append('material_ids', filters.material_ids)
+      if (filters.material_ids) {params.append('material_ids', filters.material_ids)}
 
       // Sorting
-      if (filters.sort) params.append('sort', filters.sort)
-      else params.append('sort', 'relevance') // Default sort
+      if (filters.sort) {params.append('sort', filters.sort)}
+      else {params.append('sort', 'relevance')} // Default sort
 
       // Stock filtering
-      if (filters.no_soldout) params.append('no_soldout', filters.no_soldout)
-      else params.append('no_soldout', '1') // Default: hide sold out
+      if (filters.no_soldout) {params.append('no_soldout', filters.no_soldout)}
+      else {params.append('no_soldout', '1')} // Default: hide sold out
 
       // Pagination parameters
       params.append('size', filters.size || '60') // Items per page
@@ -240,20 +241,20 @@ export class ZalandoApiService {
       const params = new URLSearchParams()
 
       // Include current filters to get accurate counts
-      if (filters.brand_codes) params.append('brand_codes', filters.brand_codes)
-      if (filters.category_ids) params.append('category_ids', filters.category_ids)
-      if (filters.gender) params.append('gender', filters.gender)
-      if (filters.color_ids) params.append('color_ids', filters.color_ids)
-      if (filters['sizes.shoes']) params.append('sizes.shoes', filters['sizes.shoes'])
-      if (filters.price_min) params.append('price_min', filters.price_min)
-      if (filters.price_max) params.append('price_max', filters.price_max)
+      if (filters.brand_codes) {params.append('brand_codes', filters.brand_codes)}
+      if (filters.category_ids) {params.append('category_ids', filters.category_ids)}
+      if (filters.gender) {params.append('gender', filters.gender)}
+      if (filters.color_ids) {params.append('color_ids', filters.color_ids)}
+      if (filters['sizes.shoes']) {params.append('sizes.shoes', filters['sizes.shoes'])}
+      if (filters.price_min) {params.append('price_min', filters.price_min)}
+      if (filters.price_max) {params.append('price_max', filters.price_max)}
 
       // Request all filter types
       params.append('fields', 'category_filter,color_filter,gender_filter,price_filter,size_filter,brand_filter,material_filter')
 
       // Stock filtering
-      if (filters.no_soldout) params.append('no_soldout', filters.no_soldout)
-      else params.append('no_soldout', '1')
+      if (filters.no_soldout) {params.append('no_soldout', filters.no_soldout)}
+      else {params.append('no_soldout', '1')}
 
       // Enhanced size filter sorting
       params.append('use_score_size_filter_sort', 'true')
@@ -318,33 +319,13 @@ export class ZalandoApiService {
       brandCodes = formData.brands
       console.log('🏷️ Using brand codes from array:', brandCodes)
     } else if (formData.brand && formData.brand.trim()) {
-      // Legacy format: convert brand names to codes
+      // Legacy format: convert brand names to codes using complete mapping
       console.log('🏷️ Processing legacy brand:', formData.brand)
-      const brands = formData.brand.split(',').map((b: string) => b.trim().toLowerCase())
+      const brands = formData.brand.split(',').map((b: string) => b.trim())
       console.log('🏷️ Split brands:', brands)
-      // Enhanced brand mapping from capture analysis (brands.json + sizes.json)
-      const brandMap: Record<string, string> = {
-        'adidas': 'AD5',
-        'adidas performance': 'AD5',
-        'adidas originals': 'AD7',
-        'adidas neo': 'AD1',      // From capture: AD1
-        'nike': 'NI',
-        'puma': 'PU1',            // From capture: PU1
-        'tommy hilfiger': 'TA4',  // From capture: TA4
-        'calvin klein': 'CK',
-        'under armour': 'UND',
-        'new balance': 'NB',
-        'converse': 'CN',
-        'vans': 'VA',
-        'reebok': 'RB',
-        // New brands from capture analysis
-        'alberto': 'ALB',         // From capture: ALB
-        'hugo': 'H1X',           // From capture: H1X
-        'salomon': 'SA5',        // From capture: SA5
-        'merrell': 'ME1',        // From capture: ME1
-        'adq': 'ADQ'             // From capture: ADQ (unknown brand)
-      }
-      brandCodes = brands.map((brand: string) => brandMap[brand] || brand).filter(Boolean)
+
+      // Use complete brand mapping from capture data (585 brands)
+      brandCodes = getBrandCodes(brands)
       console.log('🏷️ Mapped legacy brands:', brandCodes)
     } else if (formData.shoesCategory && formData.shoesCategory.includes('Buty')) {
       // Default popular shoe brands from brands.json capture

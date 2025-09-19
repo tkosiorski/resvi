@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Campaign } from '../shared/types'
+import type { Campaign } from '@/shared/types'
 
 export function useCampaigns() {
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([])

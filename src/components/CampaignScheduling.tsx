@@ -1,4 +1,4 @@
-import type { CampaignSchedulingProps } from '../shared/types'
+import type { CampaignSchedulingProps } from '@/shared/types'
 
 export default function CampaignScheduling({
   campaignId,

@@ -1,4 +1,4 @@
-import type { HeaderProps } from '../shared/types'
+import type { HeaderProps } from '@/shared/types'
 
 export default function Header({ autoExtendCart, onCartExtensionToggle }: HeaderProps) {
   return (
