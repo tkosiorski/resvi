@@ -25,21 +25,8 @@ function logToStorage(level: string, message: string) {
   }
 }
 
-interface FilterConfig {
-  brand?: string[]
-  size?: string[]
-  color?: string
-  maxPrice?: number
-  sortMethod?: string
-  itemsToAdd?: number
-  category?: {
-    gender?: string // 'Kobiety' | 'Mężczyźni'
-    clothingCategory?: string // 'Wszystkie w kategorii Odzież' or specific subcategory
-    shoesCategory?: string // 'Wszystkie w kategorii Buty' or specific subcategory
-    accessoriesCategory?: string // 'Wszystkie w kategorii Akcesoria' or specific subcategory
-    equipmentCategory?: string // 'Wszystkie w kategorii Sprzęt' or specific subcategory
-  }
-}
+// FilterConfig interface is imported at the top if needed
+// For now, we'll use inline type for this content script
 
 class ZalandoFilter {
   private config: FilterConfig = {}

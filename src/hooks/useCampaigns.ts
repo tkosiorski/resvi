@@ -1,18 +1,5 @@
 import { useState, useEffect } from 'react'
-
-interface Campaign {
-  id: string
-  executionTime: number
-  delay?: number // Delay in milliseconds before execution (default: 500ms)
-  filters: {
-    brands: string[]
-    size: string
-    color: string
-    maxPrice: number
-  }
-  sortMethod: string
-  itemsToAdd: number
-}
+import type { Campaign } from '../shared/types'
 
 export function useCampaigns() {
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([])

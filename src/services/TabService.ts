@@ -1,18 +1,4 @@
-interface FilterConfig {
-  brand: string[]
-  size: string[]
-  color?: string
-  maxPrice?: number
-  sortMethod?: string
-  itemsToAdd?: number
-  category?: {
-    gender?: string
-    clothingCategory?: string
-    shoesCategory?: string
-    accessoriesCategory?: string
-    equipmentCategory?: string
-  }
-}
+import type { FilterConfig } from '../shared/types'
 
 export class TabService {
   static async waitForPageLoad(tabId: number): Promise<void> {

@@ -1,15 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import brandCodesData from '../../capture1/brand-codes-2025-09-18T10-23-29-099Z.json'
-
-interface Brand {
-  code: string
-  name: string
-}
-
-interface MultiSelectBrandsProps {
-  selectedBrands: string[]
-  onBrandsChange: (brands: string[]) => void
-}
+import type { Brand, MultiSelectBrandsProps } from '../shared/types'
 
 export default function MultiSelectBrands({ selectedBrands, onBrandsChange }: MultiSelectBrandsProps) {
   const [isOpen, setIsOpen] = useState(false)

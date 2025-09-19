@@ -1,43 +1,4 @@
-interface ZalandoFilters {
-  // Brand filtering
-  brand_codes?: string  // Comma-separated brand codes (e.g., 'AD5,PU1')
-
-  // Size filtering
-  'sizes.shoes'?: string      // Shoe sizes (e.g., '44,45')
-  'sizes.clothing'?: string   // Clothing sizes (e.g., 'M,L')
-  size_values?: string        // Generic size values
-
-  // Category filtering
-  category_ids?: string       // Category IDs (e.g., '46319661,70097656')
-  category_codes?: string     // Category codes
-
-  // Gender filtering  gender?: string            // MALE, FEMALE, UNISEX
-
-  // Color filtering
-  color_ids?: string         // Color IDs (e.g., '0,800')
-
-  // Price filtering
-  price_min?: string         // Minimum price in cents
-  price_max?: string         // Maximum price in cents
-
-  // Sorting and pagination
-  sort?: string              // relevance, price_asc, price_desc, newest
-  size?: string              // Page size (default 60)
-  cursor?: string            // Pagination cursor
-
-  // Stock filtering
-  no_soldout?: string        // '0' include, '1' exclude sold out
-
-  // Additional filters
-  material_ids?: string      // Material filter IDs
-  fields?: string            // Response fields
-}
-
-interface ZalandoApiResponse {
-  success: boolean
-  data?: any
-  error?: string
-}
+import type { ZalandoFilters, ZalandoApiResponse } from '../shared/types'
 
 export class ZalandoApiService {
   private static instance: ZalandoApiService

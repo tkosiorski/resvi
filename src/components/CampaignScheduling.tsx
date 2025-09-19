@@ -1,12 +1,4 @@
-interface CampaignSchedulingProps {
-  campaignId: string
-  executionTime: string
-  delay: number
-  onCampaignIdChange: (value: string) => void
-  onExecutionTimeChange: (value: string) => void
-  onDelayChange: (value: number) => void
-  onScheduleCampaign: () => Promise<void>
-}
+import type { CampaignSchedulingProps } from '../shared/types'
 
 export default function CampaignScheduling({
   campaignId,

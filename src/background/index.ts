@@ -76,9 +76,14 @@ async function executeCampaign(campaignId: string) {
     if (workflowResult.success) {
       console.log('🎯 V2 campaign execution completed successfully!')
 
-      // Auto-enable cart extension after successful campaign
-      console.log('🛒 Auto-enabling cart extension after successful campaign')
-      await toggleCartExtension(true)
+      // Only auto-enable cart extension if products were actually added to cart
+      const addedCount = workflowResult.data?.successCount || 0
+      if (addedCount > 0) {
+        console.log(`🛒 Auto-enabling cart extension after adding ${addedCount} products to cart`)
+        await toggleCartExtension(true)
+      } else {
+        console.log('⚠️ No products added to cart - not enabling cart extension')
+      }
     } else {
       console.error('❌ V2 campaign execution failed after retries')
     }
@@ -175,7 +180,7 @@ async function executeV2ApiWorkflow(campaignId: string, filters: any, size: stri
     // Standard parameters
     params.append('size', '60')
     params.append('fields', '1')
-    params.append('sort', 'relevance')
+    params.append('sort', filters.sort || 'relevance')
     params.append('no_soldout', '1')
 
     const url = `${baseUrl}/catalog/events/${campaignId}/articles?${params.toString()}`
@@ -372,6 +377,17 @@ function convertFormToFilters(formData: any): any {
   // Price handling
   if (formData.maxPrice && formData.maxPrice > 0) {
     filters.price_max = (formData.maxPrice * 100).toString() // Convert to cents
+  }
+
+  // Sort method mapping
+  if (formData.sortMethod) {
+    const sortMap: Record<string, string> = {
+      'popularne': 'relevance',
+      'najniższa cena': 'price_asc',
+      'najwyższa cena': 'price_desc',
+      'wyprzedaż': 'savings'
+    }
+    filters.sort = sortMap[formData.sortMethod.toLowerCase()] || 'relevance'
   }
 
   return filters

@@ -1,9 +1,4 @@
-interface HeaderProps {
-  version: 'v1' | 'v2'
-  onVersionChange: (_version: 'v1' | 'v2') => void
-  autoExtendCart: boolean
-  onCartExtensionToggle: (enabled: boolean) => void
-}
+import type { HeaderProps } from '../shared/types'
 
 export default function Header({ version, onVersionChange, autoExtendCart, onCartExtensionToggle }: HeaderProps) {
   return (

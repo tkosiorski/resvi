@@ -1,28 +1,5 @@
-interface Campaign {
-  id: string
-  executionTime: number
-  delay?: number
-  filters: {
-    brands: string[]
-    size: string
-    color: string
-    maxPrice: number
-  }
-  sortMethod: string
-  itemsToAdd: number
-  // Execution results (populated after campaign runs)
-  success?: boolean
-  addedToCart?: number
-  totalFound?: number
-}
-
-import { getBrandNames } from '../utils/brandMapping'
-
-interface ActiveCampaignsProps {
-  campaigns: Campaign[]
-  onCancelCampaign: (campaignId: string) => Promise<void>
-  onClearHistory?: () => Promise<void>
-}
+import { getBrandNames } from '../shared/utils/brandMapping'
+import type { Campaign, ActiveCampaignsProps } from '../shared/types'
 
 export default function ActiveCampaigns({ campaigns, onCancelCampaign, onClearHistory }: ActiveCampaignsProps) {
   const now = Date.now()

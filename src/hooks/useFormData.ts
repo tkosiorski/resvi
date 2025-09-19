@@ -1,21 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-
-interface FormData {
-  campaignId: string
-  brands: string[]
-  size: string
-  color: string
-  maxPrice: number
-  sortMethod: string
-  itemsToAdd: number
-  executionTime: string
-  delay: number // Delay in milliseconds before execution
-  gender: string
-  clothingCategory: string
-  shoesCategory: string
-  accessoriesCategory: string
-  equipmentCategory: string
-}
+import type { FormData } from '../shared/types'
 
 const defaultFormData: FormData = {
   campaignId: '',
